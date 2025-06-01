@@ -47,9 +47,9 @@ return new class extends Migration
 
         Schema::create('actor_permissions', function (Blueprint $table) {
             $table->id();
-            $table->string('actor_type', 100)->nullable();
+            $table->string('actor_type', 40)->nullable();
             $table->unsignedBigInteger('actor_id')->nullable();
-            $table->string('permissionable_type', 100)->nullable();
+            $table->string('permissionable_type', 40)->nullable();
             $table->unsignedBigInteger('permissionable_id')->nullable();
             $table->string('permission', 120);
             $table->timestamps();
