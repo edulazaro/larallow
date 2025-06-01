@@ -1,6 +1,6 @@
 {
     "name": "edulazaro/larallow",
-    "description": "Laravel localization package",
+    "description": "Roles and permissions support for Laravel",
     "license": "MIT",
     "type": "library",
     "require": {
