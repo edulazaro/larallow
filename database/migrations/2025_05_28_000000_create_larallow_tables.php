@@ -27,14 +27,15 @@ return new class extends Migration
 
         Schema::create('actor_role', function (Blueprint $table) {
             $table->id();
-            $table->morphs('actor');
+            $table->string('actor_type', 80);
+            $table->unsignedBigInteger('actor_id');
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->nullableMorphs('roleable');
+            $table->string('roleable_type', 80)->nullable();
+            $table->unsignedBigInteger('roleable_id')->nullable();
             $table->timestamps();
 
             $table->unique(['actor_type', 'actor_id', 'role_id', 'roleable_type', 'roleable_id'], 'unique_actor_role');
         });
-
 
         Schema::create('role_permissions', function (Blueprint $table) {
             $table->id();
