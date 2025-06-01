@@ -39,7 +39,7 @@ return new class extends Migration
         Schema::create('role_permissions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->string('permission', 120);
+            $table->string('permission', 160);
             $table->timestamps();
 
             $table->unique(['role_id', 'permission'], 'unique_role_permission');
@@ -47,11 +47,11 @@ return new class extends Migration
 
         Schema::create('actor_permissions', function (Blueprint $table) {
             $table->id();
-            $table->string('actor_type', 40)->nullable();
+            $table->string('actor_type', 80)->nullable();
             $table->unsignedBigInteger('actor_id')->nullable();
-            $table->string('permissionable_type', 40)->nullable();
+            $table->string('permissionable_type', 80)->nullable();
             $table->unsignedBigInteger('permissionable_id')->nullable();
-            $table->string('permission', 120);
+            $table->string('permission', 160);
             $table->timestamps();
 
             $table->unique([
