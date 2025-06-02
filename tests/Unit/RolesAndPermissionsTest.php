@@ -17,7 +17,7 @@ class RolesAndPermissionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function createUserWithPermissions(array $directPermissions = [], array $rolePermissions = [], $roleable = null): User
+    protected function createUserWithPermissions(array $directPermissions = [], array $rolePermissions = [], $scopable = null): User
     {
         $user = new User();
         $user->save();
@@ -29,7 +29,7 @@ class RolesAndPermissionsTest extends TestCase
         if (!empty($rolePermissions)) {
             $roleData = [
                 'handle' => 'test-role',
-                'roleable_types' => json_encode($roleable ? [$roleable->getMorphClass()] : []),
+                'scopable_types' => json_encode($scopable ? [$scopable->getMorphClass()] : []),
                 'actor_types' => json_encode([$user->getMorphClass()]),
                 'translations' => json_encode([]),
             ];
@@ -39,8 +39,8 @@ class RolesAndPermissionsTest extends TestCase
                 $role->permissions()->create(['permission' => $permission]);
             }
 
-            if ($roleable) {
-                $user->assignRole($role, $roleable);
+            if ($scopable) {
+                $user->assignRole($role, $scopable);
             } else {
                 $user->assignRole($role);
             }
@@ -132,42 +132,42 @@ class RolesAndPermissionsTest extends TestCase
     }
 
     /** @test */
-    public function check_returns_true_for_user_with_roleable_scope()
+    public function check_returns_true_for_user_with_scopable_scope()
     {
         User::allowed(UserPermissions::class);
 
-        $roleable = new class {
-            public function getMorphClass() { return 'app-roleable'; }
+        $scopable = new class {
+            public function getMorphClass() { return 'app-scopable'; }
             public function getKey() { return 1; }
         };
 
         $user = $this->createUserWithPermissions(
             [],
             [UserPermissions::EditPost->value],
-            $roleable
+            $scopable
         );
 
         $result = Permissions::query()
             ->permissions([UserPermissions::EditPost])
             ->for($user)
-            ->on($roleable)
+            ->on($scopable)
             ->check();
 
         $this->assertTrue($result);
     }
 
     /** @test */
-    public function check_returns_false_for_user_with_wrong_roleable_scope()
+    public function check_returns_false_for_user_with_wrong_scopable_scope()
     {
         User::allowed(UserPermissions::class);
 
         $correctRoleable = new class {
-            public function getMorphClass() { return 'app-roleable'; }
+            public function getMorphClass() { return 'app-scopable'; }
             public function getKey() { return 1; }
         };
 
         $wrongRoleable = new class {
-            public function getMorphClass() { return 'app-roleable'; }
+            public function getMorphClass() { return 'app-scopable'; }
             public function getKey() { return 2; }
         };
 

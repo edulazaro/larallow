@@ -44,7 +44,7 @@ trait HasPermissions
         return Permissions::query()->permissions($permissions)->for($this);
     }
 
-    public function allow(string|BackedEnum $permission, $permissionable = null): void
+    public function allow(string|BackedEnum $permission, $scopable = null): void
     {
         $permissionValue = $permission instanceof BackedEnum ? $permission->value : $permission;
 
@@ -54,25 +54,25 @@ trait HasPermissions
 
         $this->permissions()->create([
             'permission' => $permissionValue,
-            'permissionable_type' => optional($permissionable)->getMorphClass(),
-            'permissionable_id' => optional($permissionable)->getKey(),
+            'scopable_type' => optional($scopable)->getMorphClass(),
+            'scopable_id' => optional($scopable)->getKey(),
         ]);
     }
 
-    public function deny(string|BackedEnum $permission, $permissionable = null): void
+    public function deny(string|BackedEnum $permission, $scopable = null): void
     {
         $this->permissions()
             ->where('permission', $permission instanceof BackedEnum ? $permission->value : $permission)
-            ->when($permissionable, fn ($q) => $q->whereMorphedTo('permissionable', $permissionable))
+            ->when($scopable, fn ($q) => $q->whereMorphedTo('scopable', $scopable))
             ->delete();
     }
 
-    public function hasPermission(string|BackedEnum $permission, $permissionable = null): bool
+    public function hasPermission(string|BackedEnum $permission, $scopable = null): bool
     {
-        return $this->hasPermissions($permission, $permissionable);
+        return $this->hasPermissions($permission, $scopable);
     }
 
-    public function hasPermissions(string|BackedEnum|array $permissions, $permissionable = null): bool
+    public function hasPermissions(string|BackedEnum|array $permissions, $scopable = null): bool
     {
         $permissions = is_array($permissions) ? $permissions : [$permissions];
 
@@ -85,7 +85,7 @@ trait HasPermissions
 
         $count = $this->permissions()
             ->whereIn('permission', $permissionValues)
-            ->when($permissionable, fn ($q) => $q->whereMorphedTo('permissionable', $permissionable))
+            ->when($scopable, fn ($q) => $q->whereMorphedTo('scopable', $scopable))
             ->count();
 
         return $count === count($permissionValues);

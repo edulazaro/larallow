@@ -34,9 +34,9 @@ class LarallowServiceProvider extends ServiceProvider
      */
     protected function loadDirectives()
     {
-        Blade::if('permissions', function (string|BackedEnum|array $permissions, $permissionable = null) {
+        Blade::if('permissions', function (string|BackedEnum|array $permissions, $scopable = null) {
             return Permissions::query()->permissions($permissions)
-                ->on($permissionable)
+                ->on($scopable)
                 ->check();
         });
 

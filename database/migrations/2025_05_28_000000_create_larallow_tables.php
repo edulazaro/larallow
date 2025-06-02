@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('tenant_id')->nullable();
    
             $table->json('actor_types')->nullable();
-            $table->json('roleable_types')->nullable();
+            $table->json('scopable_types')->nullable();
 
             $table->string('handle');
             $table->string('name')->nullable();
@@ -32,11 +32,11 @@ return new class extends Migration
             $table->string('actor_type', 80);
             $table->unsignedBigInteger('actor_id');
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->string('roleable_type', 80)->nullable();
-            $table->unsignedBigInteger('roleable_id')->nullable();
+            $table->string('scopable_type', 80)->nullable();
+            $table->unsignedBigInteger('scopable_id')->nullable();
             $table->timestamps();
 
-            $table->unique(['actor_type', 'actor_id', 'role_id', 'roleable_type', 'roleable_id'], 'unique_actor_role');
+            $table->unique(['actor_type', 'actor_id', 'role_id', 'scopable_type', 'scopable_id'], 'unique_actor_role');
         });
 
         Schema::create('role_permissions', function (Blueprint $table) {
@@ -52,16 +52,16 @@ return new class extends Migration
             $table->id();
             $table->string('actor_type', 80)->nullable();
             $table->unsignedBigInteger('actor_id')->nullable();
-            $table->string('permissionable_type', 80)->nullable();
-            $table->unsignedBigInteger('permissionable_id')->nullable();
+            $table->string('scopable_type', 80)->nullable();
+            $table->unsignedBigInteger('scopable_id')->nullable();
             $table->string('permission', 160);
             $table->timestamps();
 
             $table->unique([
                 'actor_type',
                 'actor_id',
-                'permissionable_type',
-                'permissionable_id',
+                'scopable_type',
+                'scopable_id',
                 'permission',
             ], 'unique_actor_permission');
         });

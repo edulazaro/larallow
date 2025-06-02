@@ -12,7 +12,7 @@ class Role extends Model
     protected $fillable = [
         'tenant_type',
         'tenant_id',
-        'roleable_types',
+        'scopable_types',
         'actor_types',
         'handle',
         'name',
@@ -20,7 +20,7 @@ class Role extends Model
     ];
 
     protected $casts = [
-        'roleable_types' => 'array',
+        'scopable_types' => 'array',
         'actor_types' => 'array',
         'translations' => 'array',
     ];
