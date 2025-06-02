@@ -10,6 +10,7 @@ class Roles
     protected array $roles = [];
     protected $actor = null;
     protected $roleable = null;
+    protected $tenant = null;
 
     /**
      * Create a new instance for fluent interface.
@@ -63,6 +64,18 @@ class Roles
     }
 
     /**
+     * Optionally set the polymorphic tenant model for multi tenantcy apps
+     *
+     * @param mixed|null $tenat
+     * @return $this
+     */
+    public function tenant($tenant = null): static
+    {
+        $this->tenant = $tenant;
+        return $this;
+    }
+
+    /**
      * Assign the roles to the actor with optional roleable scope.
      *
      * @return bool True if assigned, false if no actor.
@@ -103,6 +116,14 @@ class Roles
                 throw new InvalidArgumentException(
                     "Roleable type '{$roleableClass}' is not allowed by the roleable_types of role '{$role->name}'."
                 );
+            }
+
+            if ($this->tenant) {
+                if ($role->tenant_type !== $this->tenant->getMorphClass() || $role->tenant_id !== $this->tenant->getKey()) {
+                    throw new InvalidArgumentException(
+                        "Role '{$role->name}' does not belong to tenant '{$this->tenant->getMorphClass()}#{$this->tenant->getKey()}'."
+                    );
+                }
             }
         }
 

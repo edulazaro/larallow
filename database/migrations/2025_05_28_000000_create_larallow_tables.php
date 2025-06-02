@@ -13,16 +13,18 @@ return new class extends Migration
     {
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
-            $table->json('roleable_types')->nullable();
+            $table->string('tenant_type', 80)->nullable();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+   
             $table->json('actor_types')->nullable();
+            $table->json('roleable_types')->nullable();
+
             $table->string('handle');
             $table->string('name')->nullable();
             $table->json('translations')->nullable();
             $table->timestamps();
 
-            $table->unique([
-                'handle',
-            ], 'unique_roles');
+            $table->unique(['handle', 'tenant_type', 'tenant_id', 'actor_type'], 'unique_roles');
         });
 
         Schema::create('actor_role', function (Blueprint $table) {

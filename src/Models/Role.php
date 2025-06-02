@@ -4,11 +4,14 @@ namespace EduLazaro\Larallow\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use EduLazaro\Larallow\Models\RolePermission;
 
 class Role extends Model
 {
     protected $fillable = [
+        'tenant_type',
+        'tenant_id',
         'roleable_types',
         'actor_types',
         'handle',
@@ -21,6 +24,16 @@ class Role extends Model
         'actor_types' => 'array',
         'translations' => 'array',
     ];
+
+    /**
+     * Get the polymorphic tenant model.
+     *
+     * @return MorphTo
+     */
+    public function tenant(): MorphTo
+    {
+        return $this->morphTo();
+    }
 
     /**
      * Get the permissions associated with this role.

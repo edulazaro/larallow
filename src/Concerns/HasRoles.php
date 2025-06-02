@@ -15,13 +15,13 @@ trait HasRoles
      * @param string|array|null $roles Role names or IDs to filter by.
      * @return MorphToMany|Roles
      */
-    public function roles(string|array|null $roles = null): MorphToMany|Roles
+    public function roles(int|array|null $roles = null): MorphToMany|Roles
     {
         if (is_null($roles)) {
             return $this->morphToMany(Role::class, 'actor', 'actor_role');
         }
 
-        return Roles::query()->roles($roles)->for($this);
+        return Roles::query()->for($this)->roles($roles);
     }
 
     /**
