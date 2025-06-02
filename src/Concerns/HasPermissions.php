@@ -11,6 +11,7 @@ use BackedEnum;
 trait HasPermissions
 {
     public static $allowedPermissions = [];
+    public static array $impliedPermissions = [];
 
     public static function allowed(string|array $permissionsEnumClasses): void
     {
@@ -26,6 +27,14 @@ trait HasPermissions
             if (enum_exists($perm)) {
                 foreach ($perm::cases() as $case) {
                     $allPermissions[] = $case->value;
+
+                    if (method_exists($case, 'implied')) {
+                        foreach ($case->implied() as $impliedCase) {
+                            static::$impliedPermissions[$case->value][] = $impliedCase instanceof BackedEnum
+                                ? $impliedCase->value
+                                : (string) $impliedCase;
+                        }
+                    }
                 }
             } else {
                 $allPermissions[] = $perm;

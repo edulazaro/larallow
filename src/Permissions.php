@@ -99,11 +99,25 @@ class Permissions
                 ->all();
         }
 
-        $permissions = array_unique(array_merge($permissions, $rolePermissions));
+        $granted = array_unique(array_merge($permissions, $rolePermissions));
 
-        $missing = array_diff($this->permissions, $permissions);
+        foreach ($this->permissions as $required) {
+            $valid = [$required];
 
-        return count($missing) === 0;
+            foreach ($granted as $grantedPermission) {
+                $implied = $actor::$impliedPermissions[$grantedPermission] ?? [];
+
+                if (in_array($required, $implied, true)) {
+                    $valid[] = $grantedPermission;
+                }
+            }
+
+            if (count(array_intersect($valid, $granted)) === 0) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
