@@ -21,6 +21,7 @@ Spatie Permissions is a great package. However it stores permissions in the data
 - Use PHP enums for defining and restricting permissions in a type-safe manner
 - Fluent querying and checking with Permissions and Roles helper classes
 - Built-in translation support for role names without external packages
+- Permission hierarchy
 
 ## Installation
 
@@ -39,7 +40,7 @@ php artisan migrate
 
 ## Setup and Configuration
 
-### Adding Traits to Your Models
+Here you can find how to easily edit your models so they accept permissions.
 
 Add the `HasPermissions` and `HasRoles` traits to your actor models, e.g., User or Client:
 
@@ -55,16 +56,16 @@ class User extends Authenticatable
 
 You can skip any of the traits if you do not need them, as both permissions and roles can be handled separately.
 
-### Defining Allowed Permissions with Enums
+## Defining Allowed Permissions with Enums
 
 Define permissions as PHP 8.1+ backed enums:
 
 ```php
 enum UserPermissions: string
 {
-    case EditPost = 'edit-post';
-    case DeletePost = 'delete-post';
-    case ViewDashboard = 'view-dashboard';
+    case EditPost = 'edit_post';
+    case DeletePost = 'delete_post';
+    case ViewDashboard = 'view_dashboard';
 }
 ```
 
@@ -76,9 +77,178 @@ User::allowed(UserPermissions::class);
 
 This provides an extra layer of security during development, so only allowed permissions can be added.
 
-### Managing Roles and Permissions
+You can also use the `implied` method to create a permission hierarchy:
 
-**Assigning Roles to Actors**
+```php
+enum UserPermissions: string
+{
+    case ViewClients = 'view_clients';
+    case ManageClients = 'manage_clients';
+
+    public function implied(): array
+    {
+        return match ($this) {
+            self::ManageClients => [
+                self::ViewClients
+            ],
+            default => [],
+        };
+    }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::ViewClients => 'View Clients',
+            self::ManageClients => 'Manage Clients',
+        };
+    }
+}
+```
+
+In the previous example, a user who has assigned the `manage_clients` will also be able to `view_clients`, so even if not directly assigned, the checks for `view_clients` will pass.
+
+## Managing Permissions
+
+This section describes how to manage permissions assigned to actors (e.g., users) without involving roles.
+
+### Adding Permissions
+
+You can assign permissions directly to an actor instance (e.g., a User) using the `allow` method from the `HasPermissions` concern or via the Permissions class:
+
+```php
+use App\Models\User;
+use App\Enums\Permissions\UserPermission;
+
+$user = User::find(1);
+
+// Using enum
+$user->allow(UserPermission::EditPost);
+
+// Or using string
+$user->allow('edit_post');
+```
+
+Use the `permissions` helper:
+
+```php
+$hasPermission = permissions('edit_post')
+    ->for($user)
+    ->allow();
+```
+
+Adding permissions using the permissions method:
+
+```php
+$hasPermission = $user->permissions('edit_post')->allow();
+```
+
+### Removing Permissions
+
+To remove (revoke) direct permissions from an actor (such as a user), you can use the deny method provided by the `HasPermissions` trait or via the `Permissions` class.
+
+You simply call `deny()` passing the permission to remove:
+
+```php
+$user = User::find(1);
+
+// Remove a direct permission by string or enum
+$user->deny('edit_post');
+
+// Or using enum
+$user->deny(UserPermission::EditPost);
+```
+
+This will delete the permission record that directly grants this permission to the user.
+
+You can use the Permissions class fluent interface:
+
+```php
+use EduLazaro\Larallow\Permissions;
+
+Permissions::query()
+    ->permissions('edit_post')  // or enum
+    ->for($user)
+    ->deny();
+
+// Or with Permissions helper:
+permissions('edit_office')
+    ->for($user)
+    ->deny();
+```
+
+You can also use the optional scope.
+
+If permissions are scoped to a specific model (e.g., a content item or office), you can specify the related model when denying the permission:
+
+```php
+$office = Office::find(1);
+
+$user->deny('edit_office', $office);
+
+// Or with Permissions class:
+Permissions::query()
+    ->permissions('edit_office')
+    ->for($user)
+    ->on($office)
+    ->deny();
+
+// Or with Permissions helper:
+permissions('edit_office')
+    ->for($user)
+    ->on($office)
+    ->deny();
+
+```
+
+## Managing Roles
+
+This setup allows you to manage roles and their associated permissions easily, keeping role definitions and permission assignments clear and flexible.
+
+### Creating Roles
+
+To create a new role, instantiate the Role model and save it. You can define the role’s attributes such as `handle`, `name`, `tenant`, `actor_type`, and allowed `scopable_types`.
+
+```php
+use EduLazaro\Larallow\Models\Role;
+
+$role = new Role();
+$role->handle = 'office_manager';
+$role->name = 'Office Manager';
+$role->tenant_type = get_class($tenant);
+$role->tenant_id = $tenant->id;
+$role->actor_type = 'App\Models\User';
+$role->roleable_types = ['App\Models\Office'];
+$role->save();
+```
+
+### Removing Roles
+
+To remove a role, you can simply delete the `Role` model instance:
+
+```php
+$role = Role::find($roleId);
+$role->delete();
+```
+
+Make sure to detach any assignments or permissions related to this role before deleting to maintain data integrity.
+
+The `remove()` method also removes assigned roles from the given actor. If a `scopable` (scope model) is set, it removes only those role assignments tied to that scope via the pivot table. If no scope is set, it removes all assignments of those roles without scope.
+
+```php
+Roles::query()
+    ->roles($roleOrRoleIds)
+    ->for($actor)
+    ->on($scopeModel)   // optional scopable (e.g. an office, group)
+    ->remove();
+
+// Or also
+roles($roleOrRoleIds)
+    ->for($actor)
+    ->on($scopeModel)   // optional scopable (e.g. an office, group)
+    ->remove();
+```
+
+### Assigning roles to actors
 
 You can assing a role to a user:
 
@@ -89,24 +259,10 @@ $user->assignRole($role);
 You can also specify a scope or context model, which can be an organisaton, an office, a department... etc.
 
 ```php
-$user->assignRole($role, $roleableModel);
+$user->assignRole($role, $scopedModel);
 ```
 
-**Removing Roles**
-
-You can remove a role from a user using the method `removeRole`:
-
-```php
-$user->removeRole($role);
-```
-
-Or if using an scope:
-
-```php
-$user->removeRole($role, $roleableModel);
-```
-
-**Checking Roles**
+### Checking Actor Roles
 
 This will check if a role exists:
 
@@ -117,12 +273,180 @@ $user->hasRole('admin');
 If using scopes:
 
 ```php
-$user->hasRole('admin', $roleableModel);
+$user->hasRole('admin', $scopedModel);
 ```
+
+The `check()` method returns true if the actor has at least one of the specified roles assigned within the given scope (if any). If no scope is provided, it checks roles assigned without scope.
+
+```php
+$hasRole = Roles::query()
+    ->roles($roleOrRoleIds)
+    ->for($actor)
+    ->on($scopeModel)  // optional scopable
+    ->check();
+
+// Or also
+roles($roleOrRoleIds)
+    ->for($actor)
+    ->on($scopeModel)  // optional scopable
+    ->check();
+```
+
+### Adding permissions to roles
+
+Permissions are attached to roles via the `RolePermission` model relationship.
+
+Example to add permissions to a role:
+
+```php
+$role = Role::find($roleId);
+
+$role->permissions()->create(['permission' => 'edit_office']);
+$role->permissions()->create(['permission' => 'delete_office']);
+```
+
+Or add multiple permissions:
+
+```php
+foreach (['edit_office', 'delete_office', 'view_office'] as $permission) {
+    $role->permissions()->create(['permission' => $permission]);
+}
+
+```
+
+### Removing permissions from roles
+
+To remove permissions from a role, you can delete the related `RolePermission` entries:
+
+```php
+$role = Role::find($roleId);
+
+$role->permissions()->where('permission', 'edit_office')->delete();
+```
+
+To remove multiple permissions:
+
+```php
+$role->permissions()->whereIn('permission', ['edit_office', 'delete_office'])->delete();
+```
+
+### Removing roles from actors
+
+
+You can remove a role from a user using the method `removeRole`:
+
+```php
+$user->removeRole($role);
+```
+
+Or if using an scope:
+
+```php
+$user->removeRole($role, $scopedModel);
+```
+
+
+## Checking Permissions
+
+Permissions can be assinged both directly and via roles, as permissions can also be assigned to roles.
+
+## Checking Direct and Role Permissions
+
+You can use the Permissions class fluent interface to check both permissions directly assigned to a user and permissions assigned via roles:
+
+```php
+use EduLazaro\Larallow\Permissions;
+
+$hasPermission = Permissions::query()
+    ->permissions('edit_post')  // or use enum
+    ->for($user)
+    ->check();
+
+if ($hasPermission) {
+    // User has the permission directly assigned
+}
+```
+
+Use the `permissions` helper:
+
+```php
+use EduLazaro\Larallow\Permissions;
+
+$hasPermission = permissions('edit_post')  // or use enum
+    ->for($user)
+    ->check();
+
+if ($hasPermission) {
+    // User has the permission directly assigned
+}
+```
+
+You can also use the `permissions` method to cehck both direct and role permissions for a user:
+
+```php
+$canEdit = $user->permissions('permission', 'edit-post')->check();
+```
+
+Use the Blade Directive for Permissions:
+
+```php
+@permissions('edit-post')
+    <button>Edit Post</button>
+@endpermissions
+```
+
+The directive accepts permission strings or enums:
+
+```php
+@permissions(\App\Enums\Permissions\UserPermission::EditPost)
+    <button>Edit Post</button>
+@endpermissions
+```
+
+## Checking Direct Permissions Only
+
+Use the `hasPermission` method of the `HasPermissions` trait to check if a user has a permission directly assigned, excluding permissions assigned via roles:
+
+```php
+if ($user->hasPermission('edit_post')) {
+    // permission granted
+}
+```
+
+Or the `hasPermissions` method of the `HasPermissions` trait to check if a user has many permissions directly assigned, excluding permissions assigned via roles:
+
+```php
+if ($user->hasPermission(['edit_post','delete_post'])) {
+    // permission granted
+}
+```
+
+The `hasPermission()` method internally checks for direct permissions assigned to the user.
+
+
+You can also retrieve the list of permissions directly assigned to an actor via the `permissions()` Eloquent relation:
+
+```php
+$permissions = $user->permissions; // Collection of ActorPermission models
+
+foreach ($permissions as $permission) {
+    echo $permission->permission; // string permission name
+}
+```
+
+You can also query for specific permissions:
+
+```php
+$canEdit = $user->permissions()->where('permission', 'edit-post')->exists();
+```
+
+
+
+
 
 **Assigning Permissions Directly**
 
-You can directly asign permissions:
+You can directly assign permissions:
 
 ```php
 $user->allow(UserPermissions::EditPost);
@@ -137,8 +461,10 @@ $user->allow('edit_post');
 Or if using scopes:
 
 ```php
-$user->allow(UserPermissions::EditPost, $permissionableModel);
+$user->allow(UserPermissions::EditPost, $scopedModel);
 ```
+
+
 
 ### Fluent Permission Queries Using `Permissions` Class
 
@@ -146,7 +472,7 @@ $user->allow(UserPermissions::EditPost, $permissionableModel);
 $result = Permissions::query()
     ->permissions([UserPermissions::EditPost, UserPermissions::ViewDashboard])
     ->for($user)
-    ->on($permissionableModel) // optional
+    ->on($scopedModel) // optional
     ->check();
 ```
 
@@ -156,7 +482,7 @@ If using scopes:
 $result = Permissions::query()
     ->permissions(['edit_post', 'create_post'])
     ->for($user)
-    ->on($permissionableModel) // optional
+    ->on($scopedModel) // optional
     ->check();
 ```
 
@@ -165,72 +491,33 @@ Or using the permissions helper:
 ```php
 $result = permissions(['edit_post', 'create_post'])
     ->for($user)
-    ->on($permissionableModel) // optional
+    ->on($scopedModel) // optional
     ->check();
 ```
 
-### Permission Checks on Actor Models
 
-- `hasPermission($permission, $permissionable = null): bool`
-- `hasPermissions($permissions, $permissionable = null): bool`
-- `hasRolePermission($permission, $permissionable = null): bool`
-- `hasRolePermissions($permissions, $permissionable = null): bool`
-- `hasAnyRolePermission($permission, $permissionable = null): bool`
+## Translation Support
 
-Example:
+Roles in Larallow support multilingual translations without susing any other package. This allows you to define and retrieve the role's name in different languages.
 
-```php
-if ($user->hasPermission(UserPermissions::EditPost)) {
-    // ...
-}
-
-if ($user->hasRolePermission('edit-post', $projectModel)) {
-    // permission 'edit-post' via a role scoped to $projectModel
-}
-```
-
-### Role Names and Translation Support
+If translations are provided, this is how you can get a role name in the current locale of your app:
 
 ```php
 echo $role->name;
-$nameEs = $role->getTranslation('name', 'es', 'Default Name');
-$role->setTranslation('name', 'fr', 'Nom en Français');
 ```
 
-## Database Schema Overview
+You can retrieve a specific translated version of the role name by specifying the desired locale. If a translation for the specified locale does not exist, a fallback can be used:
 
-### Roles Table
+```php
+$nameInSpanish = $role->getTranslation('name', 'es', 'Nombre por defecto'); 
+```
 
-- `id`
-- `roleable_types` (JSON)
-- `actor_types` (JSON)
-- `handle` (string, unique)
-- `name` (string, nullable)
-- `translations` (JSON, nullable)
-- timestamps
+You can also set the translation for a specific language using:
 
-### Actor_Role Pivot
-
-- `id`
-- `actor_type`, `actor_id`
-- `role_id`
-- `roleable_type`, `roleable_id`
-- timestamps
-
-### Role_Permissions Table
-
-- `id`
-- `role_id`
-- `permission`
-- timestamps
-
-### Actor_Permissions Table
-
-- `id`
-- `actor_type`, `actor_id`
-- `permissionable_type`, `permissionable_id`
-- `permission`
-- timestamps
+```php
+$role->setTranslation('name', 'fr', 'Nom en Français');
+$role->save();
+```
 
 ## Usage Examples
 
@@ -251,7 +538,7 @@ if ($hasAll) {
 
 ## Testing
 
-Run tests with:
+You can run the pacakge tests with:
 
 ```
 ./vendor/bin/phpunit
