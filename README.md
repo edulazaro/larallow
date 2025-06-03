@@ -214,7 +214,7 @@ use EduLazaro\Larallow\Models\Role;
 $role = new Role();
 $role->handle = 'office_manager';
 $role->name = 'Office Manager';
-$role->tenant_type = get_class($tenant);
+$role->tenant_type = $tenant->getMorphClass();
 $role->tenant_id = $tenant->id;
 $role->actor_type = 'App\Models\User';
 $role->roleable_types = ['App\Models\Office'];
@@ -261,6 +261,30 @@ You can also specify a scope or context model, which can be an organisaton, an o
 ```php
 $user->assignRole($role, $scopedModel);
 ```
+
+The `tenant()` method allows you to optionally specify the tenant model (e.g., a Group, Company, or Organization) in a multi-tenant application context when working with roles. This enables scoping role assignments, removals, and checks to a particular tenant, ensuring roles belong to the correct tenant context.
+
+```php
+$tenant = Group::find(1); // Some tenant model
+
+Roles::query()
+    ->roles($roles)         // Roles to assign or check
+    ->for($user)            // The actor (user, client, etc.)
+    ->on($scopeModel)       // Optional scopable model (e.g., Office)
+    ->tenant($tenant)       // Optional tenant model (e.g., Group)
+    ->assign();
+
+// Or also
+
+roles($roles)         // Roles to assign or check
+    ->for($user)            // The actor (user, client, etc.)
+    ->on($scopeModel)       // Optional scopable model (e.g., Office)
+    ->tenant($tenant)       // Optional tenant model (e.g., Group)
+    ->assign();
+
+```
+
+During assignment, the method will throw an `InvalidArgumentException` if any role does not belong to the specified tenant, avoiding cross-tenant contamination.
 
 ### Checking Actor Roles
 
@@ -344,7 +368,6 @@ Or if using an scope:
 ```php
 $user->removeRole($role, $scopedModel);
 ```
-
 
 ## Checking Permissions
 
