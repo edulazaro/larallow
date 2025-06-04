@@ -24,7 +24,7 @@ return new class extends Migration
             $table->json('translations')->nullable();
             $table->timestamps();
 
-            $table->unique(['handle', 'tenant_type', 'tenant_id', 'actor_type'], 'unique_roles');
+            $table->unique(['handle', 'tenant_type', 'tenant_id'], 'unique_roles');
         });
 
         Schema::create('actor_role', function (Blueprint $table) {
