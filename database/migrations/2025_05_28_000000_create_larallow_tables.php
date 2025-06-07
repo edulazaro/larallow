@@ -16,15 +16,16 @@ return new class extends Migration
             $table->string('tenant_type', 80)->nullable();
             $table->unsignedBigInteger('tenant_id')->nullable();
    
-            $table->json('actor_types')->nullable();
-            $table->json('scopable_types')->nullable();
+            $table->string('actor_type', 80)->nullable();
+            $table->string('scopable_type', 80)->nullable();
 
             $table->string('handle');
             $table->string('name')->nullable();
+            $table->text('description')->nullable();
             $table->json('translations')->nullable();
             $table->timestamps();
 
-            $table->unique(['handle', 'tenant_type', 'tenant_id'], 'unique_roles');
+            $table->unique(['handle', 'actor_type', 'scopable_type', 'tenant_type', 'tenant_id'], 'unique_roles');
         });
 
         Schema::create('actor_role', function (Blueprint $table) {

@@ -29,8 +29,8 @@ class RolesAndPermissionsTest extends TestCase
         if (!empty($rolePermissions)) {
             $roleData = [
                 'handle' => 'test-role',
-                'scopable_types' => json_encode($scopable ? [$scopable->getMorphClass()] : []),
-                'actor_types' => json_encode([$user->getMorphClass()]),
+                'scopable_type' => $scopable?->getMorphClass(),
+                'actor_type'    => $user?->getMorphClass(),
                 'translations' => json_encode([]),
             ];
             $role = Role::create($roleData);

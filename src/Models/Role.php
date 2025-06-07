@@ -12,16 +12,14 @@ class Role extends Model
     protected $fillable = [
         'tenant_type',
         'tenant_id',
-        'scopable_types',
-        'actor_types',
+        'scopable_type',
+        'actor_type',
         'handle',
         'name',
         'translations',
     ];
 
     protected $casts = [
-        'scopable_types' => 'array',
-        'actor_types' => 'array',
         'translations' => 'array',
     ];
 

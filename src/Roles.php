@@ -96,25 +96,19 @@ class Roles
         $roles = Role::whereIn('id', $this->roles)->get();
 
         foreach ($roles as $role) {
-            $actorTypes = $role->actor_types;
-            if (is_string($actorTypes)) {
-                $actorTypes = json_decode($actorTypes, true) ?: [];
-            }
+            $actorType = $role->actor_type;
 
-            $scopableTypes = $role->scopable_types;
-            if (is_string($scopableTypes)) {
-                $scopableTypes = json_decode($scopableTypes, true) ?: [];
-            }
+            $scopableType = $role->scopable_type;
 
-            if ($actorTypes !== null && !empty($actorTypes) && !in_array($actorClass, $actorTypes, true)) {
+            if ($actorType !== null && !empty($actorType) && !$actorClass !== 'actorType') {
                 throw new InvalidArgumentException(
-                    "Actor type '{$actorClass}' is not allowed by the actor_types of role '{$role->name}'."
+                    "Actor type '{$actorClass}' is not allowed by the actor_type of role '{$role->name}'."
                 );
             }
 
-            if ($scopableClass !== null && $scopableTypes !== null && !empty($scopableTypes) && !in_array($scopableClass, $scopableTypes, true)) {
+            if ($scopableClass !== null && $scopableType !== null && !empty($scopableType) && $scopableClass !== $scopableType) {
                 throw new InvalidArgumentException(
-                    "scopable type '{$scopableClass}' is not allowed by the scopable_types of role '{$role->name}'."
+                    "scopable type '{$scopableClass}' is not allowed by the scopable_type of role '{$role->name}'."
                 );
             }
 

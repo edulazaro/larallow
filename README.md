@@ -1,5 +1,5 @@
 
-# Larallow for Laravel
+# Larallow for Laravel: A package to handle roles and permission
 
 <p align="center">
     <a href="https://packagist.org/packages/edulazaro/larallow"><img src="https://img.shields.io/packagist/dt/edulazaro/larallow" alt="Total Downloads"></a>
@@ -61,7 +61,7 @@ You can skip any of the traits if you do not need them, as both permissions and 
 Define permissions as PHP 8.1+ backed enums:
 
 ```php
-enum UserPermissions: string
+enum UserPermission: string
 {
     case EditPost = 'edit_post';
     case DeletePost = 'delete_post';
@@ -72,15 +72,15 @@ enum UserPermissions: string
 Register allowed permissions on the actor model in the boot method of a service provider:
 
 ```php
-User::allowed(UserPermissions::class);
+User::allowed(UserPermission::class);
 ```
 
 This provides an extra layer of security during development, so only allowed permissions can be added.
 
-You can also use the `implied` method to create a permission hierarchy:
+You can also use the optional `implied` method to create a permission hierarchy:
 
 ```php
-enum UserPermissions: string
+enum UserPermission: string
 {
     case ViewClients = 'view_clients';
     case ManageClients = 'manage_clients';
@@ -109,7 +109,7 @@ In the previous example, a user who has assigned the `manage_clients` will also 
 
 ## Managing Permissions
 
-This section describes how to manage permissions assigned to actors (e.g., users) without involving roles.
+This section describes how to manage permissions assigned to actors (e.g., users) standalone, without involving roles.
 
 ### Adding Permissions
 
@@ -122,7 +122,7 @@ use App\Enums\Permissions\UserPermission;
 $user = User::find(1);
 
 // Using enum
-$user->allow(UserPermission::EditPost);
+$user->allow(UserPermission::ViewClients);
 
 // Or using string
 $user->allow('edit_post');
@@ -131,7 +131,7 @@ $user->allow('edit_post');
 Use the `permissions` helper:
 
 ```php
-$hasPermission = permissions('edit_post')
+permissions('view_clients')
     ->for($user)
     ->allow();
 ```
@@ -139,7 +139,32 @@ $hasPermission = permissions('edit_post')
 Adding permissions using the permissions method:
 
 ```php
-$hasPermission = $user->permissions('edit_post')->allow();
+$user->permissions('view_clients')->allow();
+```
+
+You can also use the optional scope. If permissions are scoped to a specific model (e.g., a content item or project), you can specify the related model when denying the permission:
+
+```php
+$office = Office::find(1);
+
+$user->allow('edit_office', $office);
+
+// Or also
+$user->permissions('edit_office')->on($office)->allow();
+
+// Or with Permissions class:
+Permissions::query()
+    ->permissions('edit_office')
+    ->for($user)
+    ->on($office)
+    ->allow();
+
+// Or with Permissions helper:
+permissions('edit_office')
+    ->for($user)
+    ->on($office)
+    ->allow();
+
 ```
 
 ### Removing Permissions
@@ -158,9 +183,9 @@ $user->deny('edit_post');
 $user->deny(UserPermission::EditPost);
 ```
 
-This will delete the permission record that directly grants this permission to the user.
+This will delete the record that directly grants this permission to the user.
 
-You can use the Permissions class fluent interface:
+You can also use the Permissions class:
 
 ```php
 use EduLazaro\Larallow\Permissions;
@@ -176,14 +201,15 @@ permissions('edit_office')
     ->deny();
 ```
 
-You can also use the optional scope.
-
-If permissions are scoped to a specific model (e.g., a content item or office), you can specify the related model when denying the permission:
+You can also use the optional scope. If permissions are scoped to a specific model (e.g., a content item or project), you can specify the related model when denying the permission:
 
 ```php
 $office = Office::find(1);
 
 $user->deny('edit_office', $office);
+
+// Or also
+$user->permissions('edit_office')->on($office)->deny();
 
 // Or with Permissions class:
 Permissions::query()
@@ -206,7 +232,7 @@ This setup allows you to manage roles and their associated permissions easily, k
 
 ### Creating Roles
 
-To create a new role, instantiate the Role model and save it. You can define the role’s attributes such as `handle`, `name`, `tenant`, `actor_type`, and allowed `scopable_types`.
+To create a new role, instantiate the Role model and save it. You can define the role’s attributes such as `handle`, `name`, `tenant`, `actor_type`, and allowed `scopable_type`.
 
 ```php
 use EduLazaro\Larallow\Models\Role;
@@ -216,8 +242,8 @@ $role->handle = 'office_manager';
 $role->name = 'Office Manager';
 $role->tenant_type = $tenant->getMorphClass();
 $role->tenant_id = $tenant->id;
-$role->actor_type = 'App\Models\User';
-$role->roleable_types = ['App\Models\Office'];
+$role->actor_type = 'user'; // or App\Models\User
+$role->scopable_type = 'office'; // or App\Models\Office
 $role->save();
 ```
 
@@ -270,16 +296,16 @@ $tenant = Group::find(1); // Some tenant model
 Roles::query()
     ->roles($roles)         // Roles to assign or check
     ->for($user)            // The actor (user, client, etc.)
-    ->on($scopeModel)       // Optional scopable model (e.g., Office)
+    ->on($scopeModel)       // Optional scope model (e.g., Office)
     ->tenant($tenant)       // Optional tenant model (e.g., Group)
     ->assign();
 
 // Or also
 
 roles($roles)         // Roles to assign or check
-    ->for($user)            // The actor (user, client, etc.)
-    ->on($scopeModel)       // Optional scopable model (e.g., Office)
-    ->tenant($tenant)       // Optional tenant model (e.g., Group)
+    ->for($user)      // The actor (user, client, etc.)
+    ->on($scopeModel) // Optional scope model (e.g., Office)
+    ->tenant($tenant) // Optional tenant model (e.g., Group)
     ->assign();
 
 ```
@@ -306,13 +332,13 @@ The `check()` method returns true if the actor has at least one of the specified
 $hasRole = Roles::query()
     ->roles($roleOrRoleIds)
     ->for($actor)
-    ->on($scopeModel)  // optional scopable
+    ->on($scopeModel)  // Optional scope
     ->check();
 
 // Or also
 roles($roleOrRoleIds)
     ->for($actor)
-    ->on($scopeModel)  // optional scopable
+    ->on($scopeModel)  // Optional scope
     ->check();
 ```
 
@@ -407,13 +433,13 @@ if ($hasPermission) {
 You can also use the `permissions` method to cehck both direct and role permissions for a user:
 
 ```php
-$canEdit = $user->permissions('permission', 'edit-post')->check();
+$canEdit = $user->permissions('permission', 'edit_post')->check();
 ```
 
 Use the Blade Directive for Permissions:
 
 ```php
-@permissions('edit-post')
+@permissions('edit_post')
     <button>Edit Post</button>
 @endpermissions
 ```
@@ -457,42 +483,24 @@ foreach ($permissions as $permission) {
 }
 ```
 
-You can also query for specific permissions:
+You can also query for specific permissions usig the Laravel query builder:
 
 ```php
 $canEdit = $user->permissions()->where('permission', 'edit-post')->exists();
 ```
 
-
-
-
-
-**Assigning Permissions Directly**
-
-You can directly assign permissions:
+Or you can also do:
 
 ```php
-$user->allow(UserPermissions::EditPost);
+$user->permissions([UserPermissions::EditPost, UserPermissions::ViewDashboard])
+    ->on($scopedModel) // optional
+    ->check();
 ```
 
-Or you can just use the value mathed in the enum:
+You can also use the `Permissions` class:
 
 ```php
-$user->allow('edit_post');
-```
-
-Or if using scopes:
-
-```php
-$user->allow(UserPermissions::EditPost, $scopedModel);
-```
-
-
-
-### Fluent Permission Queries Using `Permissions` Class
-
-```php
-$result = Permissions::query()
+Permissions::query()
     ->permissions([UserPermissions::EditPost, UserPermissions::ViewDashboard])
     ->for($user)
     ->on($scopedModel) // optional
@@ -518,7 +526,6 @@ $result = permissions(['edit_post', 'create_post'])
     ->check();
 ```
 
-
 ## Translation Support
 
 Roles in Larallow support multilingual translations without susing any other package. This allows you to define and retrieve the role's name in different languages.
@@ -540,23 +547,6 @@ You can also set the translation for a specific language using:
 ```php
 $role->setTranslation('name', 'fr', 'Nom en Français');
 $role->save();
-```
-
-## Usage Examples
-
-```php
-$user->assignRole($role, $team);
-$user->allow(UserPermissions::EditPost, $document);
-
-$hasAll = Permissions::query()
-    ->permissions([UserPermissions::EditPost, UserPermissions::DeletePost])
-    ->for($user)
-    ->on($document)
-    ->check();
-
-if ($hasAll) {
-    // User can edit and delete on $document
-}
 ```
 
 ## Testing

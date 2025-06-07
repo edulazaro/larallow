@@ -39,7 +39,7 @@ class ActorRole extends Model
     }
 
     /**
-     * Get the scopable entity that scopable_types this role assignment.
+     * Get the scopable entity that scopable_type this role assignment.
      *
      * @return MorphTo
      */
