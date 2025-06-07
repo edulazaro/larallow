@@ -110,4 +110,38 @@ class RolesTest extends TestCase
         $this->assertTrue($user->hasAnyRolePermission('edit-post'));
         $this->assertFalse($user->hasAnyRolePermission('non-existent-permission'));
     }
+
+    /** @test */
+    public function permissions_check_returns_true_if_user_has_any_of_the_permissions()
+    {
+        $user = new User();
+        $user->save();
+
+        $role = $this->createRole('editor');
+        $role->permissions()->create(['permission' => 'edit-post']);
+        $user->assignRole($role);
+
+        $result = $user->permissions(['edit-post', 'delete-post'])
+            ->for($user)
+            ->check();
+
+        $this->assertTrue($result); // Has 'edit-post' via role
+    }
+
+    /** @test */
+    public function permissions_check_all_returns_false_if_user_lacks_any_permission()
+    {
+        $user = new User();
+        $user->save();
+
+        $role = $this->createRole('editor');
+        $role->permissions()->create(['permission' => 'edit-post']);
+        $user->assignRole($role);
+
+        $result = $user->permissions(['edit-post', 'delete-post'])
+            ->for($user)
+            ->checkAll();
+
+        $this->assertFalse($result); // Missing 'delete-post'
+    }
 }

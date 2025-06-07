@@ -7,7 +7,7 @@ use BackedEnum;
 class Permissions
 {
     protected array $permissions = [];
-    protected $scopable = null;
+    protected $scope = null;
     protected $actor = null;
 
     /**
@@ -51,22 +51,83 @@ class Permissions
     }
 
     /**
-     * Set an optional scopable (morph) model to scope permissions.
+     * Set an optional scope (morph) model to scope permissions.
      *
-     * @param mixed $scopable
+     * @param mixed $scope
      * @return static
      */
-    public function on($scopable): static
+    public function on($scope): static
     {
-        $this->scopable = $scopable;
+        $this->scope = $scope;
         return $this;
     }
+
+    /**
+     * Check if the actor has at least one of the specified permissions, considering both direct and role-based permissions.
+     *
+     * @return bool True if actor has any of the permissions, false otherwise.
+     */
+    public function check(): bool
+    {
+        $actor = $this->actor ?? auth()->user();
+
+        if (!$actor) {
+            return false;
+        }
+
+        $permissions = [];
+        if (method_exists($actor, 'hasPermissions')) {
+            $permissions = $actor->permissions()
+                ->when($this->scope, fn($q) => $q->whereMorphedTo('scope', $this->scope))
+                ->pluck('permission')
+                ->unique()
+                ->all();
+        }
+
+        $rolePermissions = [];
+        if (method_exists($actor, 'hasRolePermissions')) {
+            $query = $actor->roles()->with('permissions');
+
+            if ($this->scope) {
+                $query->wherePivot('scope_type', $this->scope->getMorphClass())
+                    ->wherePivot('scope_id', $this->scope->getKey());
+            }
+
+            $rolePermissions = $query->get()
+                ->pluck('permissions.*.permission')
+                ->flatten()
+                ->unique()
+                ->all();
+        }
+
+        $granted = array_unique(array_merge($permissions, $rolePermissions));
+
+        foreach ($this->permissions as $required) {
+            $valid = [$required];
+
+            foreach ($granted as $grantedPermission) {
+                $implied = $actor::$impliedPermissions[$grantedPermission] ?? [];
+
+                if (in_array($required, $implied, true)) {
+                    $valid[] = $grantedPermission;
+                }
+            }
+
+            if (count(array_intersect($valid, $granted)) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
     /**
      * Check if the actor has all of the specified permissions, taking into account direct permissions and permissions via roles.
      *
      * @return bool True if actor has all permissions, false otherwise.
      */
-    public function check(): bool
+    public function checkAll(): bool
     {
         $actor = $this->actor ?? auth()->user();
 
@@ -77,7 +138,7 @@ class Permissions
         $permissions = [];
         if (method_exists($actor, 'hasPermissions')) {
             $permissions = $actor->permissions()
-                    ->when($this->scopable, fn($q) => $q->whereMorphedTo('scopable', $this->scopable))
+                    ->when($this->scope, fn($q) => $q->whereMorphedTo('scope', $this->scope))
                     ->pluck('permission')
                     ->unique()
                     ->all();
@@ -87,9 +148,9 @@ class Permissions
         if (method_exists($actor, 'hasRolePermissions')) {
             $query = $actor->roles()->with('permissions');
 
-            if ($this->scopable) {
-                $query->wherePivot('scopable_type', $this->scopable->getMorphClass())
-                    ->wherePivot('scopable_id', $this->scopable->getKey());
+            if ($this->scope) {
+                $query->wherePivot('scope_type', $this->scope->getMorphClass())
+                    ->wherePivot('scope_id', $this->scope->getKey());
             }
 
             $rolePermissions = $query->get()
@@ -134,8 +195,8 @@ class Permissions
         foreach ($this->permissions as $permission) {
             $this->actor->permissions()->firstOrCreate([
                 'permission' => $permission,
-                'scopable_type' => $this->scopable?->getMorphClass(),
-                'scopable_id' => $this->scopable?->getKey(),
+                'scope_type' => $this->scope?->getMorphClass(),
+                'scope_id' => $this->scope?->getKey(),
             ]);
         }
 
@@ -156,8 +217,8 @@ class Permissions
         $query = $this->actor->permissions()
             ->whereIn('permission', $this->permissions);
 
-        if ($this->scopable) {
-            $query->whereMorphedTo('scopable', $this->scopable);
+        if ($this->scope) {
+            $query->whereMorphedTo('scope', $this->scope);
         }
 
         $query->delete();

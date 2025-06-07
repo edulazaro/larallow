@@ -12,8 +12,8 @@ class ActorPermission extends Model
     protected $fillable = [
         'actor_type',
         'actor_id',
-        'scopable_type',
-        'scopable_id',
+        'scope_type',
+        'scope_id',
         'permission',
     ];
 
@@ -28,11 +28,11 @@ class ActorPermission extends Model
     }
 
     /**
-     * Get the scopable model this permission is scoped to.
+     * Get the scope model this permission is scoped to.
      *
      * @return MorphTo
      */
-    public function scopable(): MorphTo
+    public function scope(): MorphTo
     {
         return $this->morphTo();
     }

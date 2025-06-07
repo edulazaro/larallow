@@ -25,20 +25,20 @@ trait HasRoles
     }
 
     /**
-     * Assign a role to the model, optionally scoped by a scopable model.
+     * Assign a role to the model, optionally scoped by a scope model.
      *
      * @param Role $role
-     * @param mixed|null $scopable Polymorphic model instance or null.
+     * @param mixed|null $scope Polymorphic model instance or null.
      * @return void
      */
-    public function assignRole(Role $role, $scopable = null): void
+    public function assignRole(Role $role, $scope = null): void
     {
         $pivotData = [];
 
-        if ($scopable) {
+        if ($scope) {
             $pivotData = [
-                'scopable_type' => $scopable->getMorphClass(),
-                'scopable_id' => $scopable->getKey(),
+                'scope_type' => $scope->getMorphClass(),
+                'scope_id' => $scope->getKey(),
             ];
         }
 
@@ -50,25 +50,25 @@ trait HasRoles
     }
 
     /**
-     * Remove a role from the model, optionally scoped by a scopable model.
+     * Remove a role from the model, optionally scoped by a scope model.
      *
      * @param Role $role
-     * @param mixed|null $scopable Polymorphic model instance or null.
+     * @param mixed|null $scope Polymorphic model instance or null.
      * @return void
      */
-    public function removeRole(Role $role, $scopable = null): void
+    public function removeRole(Role $role, $scope = null): void
     {
-        if ($scopable) {
+        if ($scope) {
             $this->roles()
                 ->wherePivot('role_id', $role->id)
-                ->wherePivot('scopable_type', $scopable->getMorphClass())
-                ->wherePivot('scopable_id', $scopable->getKey())
+                ->wherePivot('scope_type', $scope->getMorphClass())
+                ->wherePivot('scope_id', $scope->getKey())
                 ->detach();
         } else {
             $this->roles()
                 ->wherePivot('role_id', $role->id)
-                ->wherePivotNull('scopable_type')
-                ->wherePivotNull('scopable_id')
+                ->wherePivotNull('scope_type')
+                ->wherePivotNull('scope_id')
                 ->detach();
         }
 
@@ -76,48 +76,48 @@ trait HasRoles
     }
 
     /**
-     * Check if the model has a given role name, optionally scoped by a scopable model.
+     * Check if the model has a given role name, optionally scoped by a scope model.
      *
      * @param string $roleName
-     * @param mixed|null $scopable Polymorphic model instance or null.
+     * @param mixed|null $scope Polymorphic model instance or null.
      * @return bool
      */
-    public function hasRole(string $roleName, $scopable = null): bool
+    public function hasRole(string $roleName, $scope = null): bool
     {
         return $this->roles
-            ->filter(function ($role) use ($scopable) {
-                if ($scopable === null) {
-                    return $role->pivot->scopable_type === null && $role->pivot->scopable_id === null;
+            ->filter(function ($role) use ($scope) {
+                if ($scope === null) {
+                    return $role->pivot->scope_type === null && $role->pivot->scope_id === null;
                 }
 
-                return $role->pivot->scopable_type === $scopable->getMorphClass()
-                    && $role->pivot->scopable_id === $scopable->getKey();
+                return $role->pivot->scope_type === $scope->getMorphClass()
+                    && $role->pivot->scope_id === $scope->getKey();
             })
             ->contains('handle', $roleName);
     }
 
     /**
      * Check if the model has a given permission via assigned roles,
-     * optionally scoped by a scopable model.
+     * optionally scoped by a scope model.
      *
      * @param string|BackedEnum $permission
-     * @param mixed|null $scopable Polymorphic model instance or null.
+     * @param mixed|null $scope Polymorphic model instance or null.
      * @return bool
      */
-    public function hasRolePermission(string|BackedEnum $permission, $scopable = null): bool
+    public function hasRolePermission(string|BackedEnum $permission, $scope = null): bool
     {
-        return $this->hasRolePermissions($permission, $scopable);
+        return $this->hasRolePermissions($permission, $scope);
     }
 
     /**
      * Check if the model has all of the given permissions via assigned roles,
-     * optionally scoped by a scopable model.
+     * optionally scoped by a scope model.
      *
      * @param string|BackedEnum|array $permissions
-     * @param mixed|null $scopable Polymorphic model instance or null.
+     * @param mixed|null $scope Polymorphic model instance or null.
      * @return bool
      */
-    public function hasRolePermissions(string|BackedEnum|array $permissions, $scopable = null): bool
+    public function hasRolePermissions(string|BackedEnum|array $permissions, $scope = null): bool
     {
         $permissions = is_array($permissions) ? $permissions : [$permissions];
 
@@ -129,9 +129,9 @@ trait HasRoles
         $values = array_unique($values);
 
         $permissionsFromRoles = $this->roles()
-            ->when($scopable, function ($query) use ($scopable) {
-                $query->wherePivot('scopable_type', $scopable->getMorphClass())
-                    ->wherePivot('scopable_id', $scopable->getKey());
+            ->when($scope, function ($query) use ($scope) {
+                $query->wherePivot('scope_type', $scope->getMorphClass())
+                    ->wherePivot('scope_id', $scope->getKey());
             })
             ->with('permissions')
             ->whereHas('permissions', function ($query) use ($values) {
@@ -151,26 +151,26 @@ trait HasRoles
 
     /**
      * Check if the model has any of the given permissions via assigned roles,
-     * optionally scoped by a scopable model.
+     * optionally scoped by a scope model.
      *
      * @param string|BackedEnum|array $permissions
-     * @param mixed|null $scopable Polymorphic model instance or null.
+     * @param mixed|null $scope Polymorphic model instance or null.
      * @return bool
      */
-    public function hasAnyRolePermission(string|BackedEnum $permission, $scopable = null): bool
+    public function hasAnyRolePermission(string|BackedEnum $permission, $scope = null): bool
     {
-        return $this->hasAnyRolePermissions($permission, $scopable);
+        return $this->hasAnyRolePermissions($permission, $scope);
     }
 
     /**
      * Check if the model has any of the given permissions via assigned roles,
-     * optionally scoped by a scopable model.
+     * optionally scoped by a scope model.
      *
      * @param string|BackedEnum|array $permissions
-     * @param mixed|null $scopable Polymorphic model instance or null.
+     * @param mixed|null $scope Polymorphic model instance or null.
      * @return bool
      */
-    public function hasAnyRolePermissions(string|BackedEnum|array $permissions, $scopable = null): bool
+    public function hasAnyRolePermissions(string|BackedEnum|array $permissions, $scope = null): bool
     {
         $permissions = is_array($permissions) ? $permissions : [$permissions];
 
@@ -180,9 +180,9 @@ trait HasRoles
         }
 
         return $this->roles()
-            ->when($scopable, function ($query) use ($scopable) {
-                $query->wherePivot('scopable_type', $scopable->getMorphClass())
-                    ->wherePivot('scopable_id', $scopable->getKey());
+            ->when($scope, function ($query) use ($scope) {
+                $query->wherePivot('scope_type', $scope->getMorphClass())
+                    ->wherePivot('scope_id', $scope->getKey());
             })
             ->whereHas('permissions', function ($query) use ($values) {
                 $query->whereIn('permission', $values);

@@ -17,7 +17,7 @@ class RolesAndPermissionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function createUserWithPermissions(array $directPermissions = [], array $rolePermissions = [], $scopable = null): User
+    protected function createUserWithPermissions(array $directPermissions = [], array $rolePermissions = [], $scope = null): User
     {
         $user = new User();
         $user->save();
@@ -29,7 +29,7 @@ class RolesAndPermissionsTest extends TestCase
         if (!empty($rolePermissions)) {
             $roleData = [
                 'handle' => 'test-role',
-                'scopable_type' => $scopable?->getMorphClass(),
+                'scope_type' => $scope?->getMorphClass(),
                 'actor_type'    => $user?->getMorphClass(),
                 'translations' => json_encode([]),
             ];
@@ -39,8 +39,8 @@ class RolesAndPermissionsTest extends TestCase
                 $role->permissions()->create(['permission' => $permission]);
             }
 
-            if ($scopable) {
-                $user->assignRole($role, $scopable);
+            if ($scope) {
+                $user->assignRole($role, $scope);
             } else {
                 $user->assignRole($role);
             }
@@ -114,7 +114,7 @@ class RolesAndPermissionsTest extends TestCase
     }
 
    /** @test */
-    public function check_returns_false_for_user_missing_any_permission()
+    public function check_returns_true_for_user_missing_any_permission()
     {
         User::allowed(UserPermissions::class);
 
@@ -128,46 +128,64 @@ class RolesAndPermissionsTest extends TestCase
             ->for($user)
             ->check();
 
+        $this->assertTrue($result);
+    }
+
+    /** @test */
+    public function check_returns_false_for_user_missing_all_permission()
+    {
+        User::allowed(UserPermissions::class);
+
+        $user = $this->createUserWithPermissions([UserPermissions::EditPost->value]);
+
+        $result = Permissions::query()
+            ->permissions([
+                UserPermissions::EditPost,
+                UserPermissions::ViewDashboard,
+            ])
+            ->for($user)
+            ->checkAll();
+
         $this->assertFalse($result);
     }
 
     /** @test */
-    public function check_returns_true_for_user_with_scopable_scope()
+    public function check_returns_true_for_user_with_scope_scope()
     {
         User::allowed(UserPermissions::class);
 
-        $scopable = new class {
-            public function getMorphClass() { return 'app-scopable'; }
+        $scope = new class {
+            public function getMorphClass() { return 'app-scope'; }
             public function getKey() { return 1; }
         };
 
         $user = $this->createUserWithPermissions(
             [],
             [UserPermissions::EditPost->value],
-            $scopable
+            $scope
         );
 
         $result = Permissions::query()
             ->permissions([UserPermissions::EditPost])
             ->for($user)
-            ->on($scopable)
+            ->on($scope)
             ->check();
 
         $this->assertTrue($result);
     }
 
     /** @test */
-    public function check_returns_false_for_user_with_wrong_scopable_scope()
+    public function check_returns_false_for_user_with_wrong_scope_scope()
     {
         User::allowed(UserPermissions::class);
 
         $correctRoleable = new class {
-            public function getMorphClass() { return 'app-scopable'; }
+            public function getMorphClass() { return 'app-scope'; }
             public function getKey() { return 1; }
         };
 
         $wrongRoleable = new class {
-            public function getMorphClass() { return 'app-scopable'; }
+            public function getMorphClass() { return 'app-scope'; }
             public function getKey() { return 2; }
         };
 

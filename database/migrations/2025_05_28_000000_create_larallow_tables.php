@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('tenant_id')->nullable();
    
             $table->string('actor_type', 80)->nullable();
-            $table->string('scopable_type', 80)->nullable();
+            $table->string('scope_type', 80)->nullable();
 
             $table->string('handle');
             $table->string('name')->nullable();
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->json('translations')->nullable();
             $table->timestamps();
 
-            $table->unique(['handle', 'actor_type', 'scopable_type', 'tenant_type', 'tenant_id'], 'unique_roles');
+            $table->unique(['handle', 'actor_type', 'scope_type', 'tenant_type', 'tenant_id'], 'unique_roles');
         });
 
         Schema::create('actor_role', function (Blueprint $table) {
@@ -33,11 +33,11 @@ return new class extends Migration
             $table->string('actor_type', 80);
             $table->unsignedBigInteger('actor_id');
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->string('scopable_type', 80)->nullable();
-            $table->unsignedBigInteger('scopable_id')->nullable();
+            $table->string('scope_type', 80)->nullable();
+            $table->unsignedBigInteger('scope_id')->nullable();
             $table->timestamps();
 
-            $table->unique(['actor_type', 'actor_id', 'role_id', 'scopable_type', 'scopable_id'], 'unique_actor_role');
+            $table->unique(['actor_type', 'actor_id', 'role_id', 'scope_type', 'scope_id'], 'unique_actor_role');
         });
 
         Schema::create('role_permissions', function (Blueprint $table) {
@@ -53,16 +53,16 @@ return new class extends Migration
             $table->id();
             $table->string('actor_type', 80)->nullable();
             $table->unsignedBigInteger('actor_id')->nullable();
-            $table->string('scopable_type', 80)->nullable();
-            $table->unsignedBigInteger('scopable_id')->nullable();
+            $table->string('scope_type', 80)->nullable();
+            $table->unsignedBigInteger('scope_id')->nullable();
             $table->string('permission', 160);
             $table->timestamps();
 
             $table->unique([
                 'actor_type',
                 'actor_id',
-                'scopable_type',
-                'scopable_id',
+                'scope_type',
+                'scope_id',
                 'permission',
             ], 'unique_actor_permission');
         });

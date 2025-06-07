@@ -113,4 +113,48 @@ class PermissionsTest extends TestCase
 
         $this->assertStringContainsString('Allowed', $rendered);
     }
+
+    /** @test */
+    public function permissions_check_returns_true_if_any_permission_is_granted()
+    {
+        User::allowed(UserPermissions::class);
+
+        $user = new User();
+        $user->save();
+
+        $user->allow(UserPermissions::EditPost);
+
+        $result = Permissions::query()
+            ->permissions([UserPermissions::EditPost, UserPermissions::DeletePost])
+            ->for($user)
+            ->check();
+
+        $this->assertTrue($result);
+    }
+
+    /** @test */
+    public function permissions_check_all_returns_true_only_if_all_permissions_are_granted()
+    {
+        User::allowed(UserPermissions::class);
+
+        $user = new User();
+        $user->save();
+
+        $user->allow(UserPermissions::EditPost);
+
+        $this->assertFalse(
+            $user->permissions([UserPermissions::EditPost, UserPermissions::DeletePost])
+                ->for($user)
+                ->checkAll()
+        );
+
+        $user->allow(UserPermissions::DeletePost);
+
+        $this->assertTrue(
+            $user->permissions([UserPermissions::EditPost, UserPermissions::DeletePost])
+                ->for($user)
+                ->checkAll()
+        );
+    }
+
 }

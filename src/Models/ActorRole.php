@@ -14,8 +14,8 @@ class ActorRole extends Model
         'actor_type',
         'actor_id',
         'role_id',
-        'scopable_type',
-        'scopable_id',
+        'scope_type',
+        'scope_id',
     ];
 
     /**
@@ -39,11 +39,11 @@ class ActorRole extends Model
     }
 
     /**
-     * Get the scopable entity that scopable_type this role assignment.
+     * Get the scope entity that scope_type this role assignment.
      *
      * @return MorphTo
      */
-    public function scopable(): MorphTo
+    public function scope(): MorphTo
     {
         return $this->morphTo();
     }

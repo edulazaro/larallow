@@ -67,4 +67,30 @@ class ImpliedPermissionsTest extends TestCase
                 ->check()
         );
     }
+
+    /** @test */
+    public function user_must_have_all_explicit_or_implied_permissions_for_check_all()
+    {
+        User::allowed(UserPermissions::class);
+
+        $user = User::create();
+
+        $user->allow(UserPermissions::ManagePosts); // implies ViewPost
+
+        $this->assertFalse(
+            Permissions::query()
+                ->permissions([UserPermissions::ViewPost, UserPermissions::EditPost])
+                ->for($user)
+                ->checkAll() // missing EditPost → false
+        );
+
+        $user->allow(UserPermissions::EditPost); // now has both
+
+        $this->assertTrue(
+            Permissions::query()
+                ->permissions([UserPermissions::ViewPost, UserPermissions::EditPost])
+                ->for($user)
+                ->checkAll()
+        );
+    }
 }

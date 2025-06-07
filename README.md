@@ -232,7 +232,7 @@ This setup allows you to manage roles and their associated permissions easily, k
 
 ### Creating Roles
 
-To create a new role, instantiate the Role model and save it. You can define the role’s attributes such as `handle`, `name`, `tenant`, `actor_type`, and allowed `scopable_type`.
+To create a new role, instantiate the Role model and save it. You can define the role’s attributes such as `handle`, `name`, `tenant`, `actor_type`, and allowed `scope_type`.
 
 ```php
 use EduLazaro\Larallow\Models\Role;
@@ -243,7 +243,7 @@ $role->name = 'Office Manager';
 $role->tenant_type = $tenant->getMorphClass();
 $role->tenant_id = $tenant->id;
 $role->actor_type = 'user'; // or App\Models\User
-$role->scopable_type = 'office'; // or App\Models\Office
+$role->scope_type = 'office'; // or App\Models\Office
 $role->save();
 ```
 
@@ -258,19 +258,19 @@ $role->delete();
 
 Make sure to detach any assignments or permissions related to this role before deleting to maintain data integrity.
 
-The `remove()` method also removes assigned roles from the given actor. If a `scopable` (scope model) is set, it removes only those role assignments tied to that scope via the pivot table. If no scope is set, it removes all assignments of those roles without scope.
+The `remove()` method also removes assigned roles from the given actor. If a `scope` (scope model) is set, it removes only those role assignments tied to that scope via the pivot table. If no scope is set, it removes all assignments of those roles without scope.
 
 ```php
 Roles::query()
     ->roles($roleOrRoleIds)
     ->for($actor)
-    ->on($scopeModel)   // optional scopable (e.g. an office, group)
+    ->on($scopeModel)   // optional scope (e.g. an office, group)
     ->remove();
 
 // Or also
 roles($roleOrRoleIds)
     ->for($actor)
-    ->on($scopeModel)   // optional scopable (e.g. an office, group)
+    ->on($scopeModel)   // optional scope (e.g. an office, group)
     ->remove();
 ```
 
@@ -312,7 +312,11 @@ roles($roles)         // Roles to assign or check
 
 During assignment, the method will throw an `InvalidArgumentException` if any role does not belong to the specified tenant, avoiding cross-tenant contamination.
 
-### Checking Actor Roles
+## Checking Actor Roles
+
+You can check roles using the Roles class:
+
+### Checking any role
 
 This will check if a role exists:
 
@@ -326,7 +330,7 @@ If using scopes:
 $user->hasRole('admin', $scopedModel);
 ```
 
-The `check()` method returns true if the actor has at least one of the specified roles assigned within the given scope (if any). If no scope is provided, it checks roles assigned without scope.
+The `check()` method returns true if the actor has at least one of the specified roles assigned within the given scope (if any). If no scope is provided, it checks roles assigned without scope:
 
 ```php
 $hasRole = Roles::query()
@@ -340,9 +344,54 @@ roles($roleOrRoleIds)
     ->for($actor)
     ->on($scopeModel)  // Optional scope
     ->check();
+
+// Or also
+$actor->roles($roleOrRoleIds)
+    ->on($scopeModel)  // Optional scope
+    ->check();
 ```
 
-### Adding permissions to roles
+### Checking all roles
+
+You can use Blade directives to check roles directly in your views:
+
+```php
+@roles(['admin', 'editor'])
+    <p>You have some elevated role access.</p>
+@endroles
+```
+
+The `checkAll()` method returns true if the actor has all of the specified roles assigned within the given scope (if any). If no scope is provided, it checks roles assigned without scope:
+
+
+```php
+$hasRole = Roles::query()
+    ->roles($roleOrRoleIds)
+    ->for($actor)
+    ->on($scopeModel)  // Optional scope
+    ->checkAll();
+
+// Or also
+roles($roleOrRoleIds)
+    ->for($actor)
+    ->on($scopeModel)  // Optional scope
+    ->checkAll();
+
+// Or also
+$actor->roles($roleOrRoleIds)
+    ->on($scopeModel)  // Optional scope
+    ->checkAll();
+```
+
+You can use Blade directives to check roles directly in your views:
+
+```php
+@allroles(['admin', 'editor'])
+    <p>You have full admin/editor access.</p>
+@endallroles
+```
+
+## Managing role permissions
 
 Permissions are attached to roles via the `RolePermission` model relationship.
 
@@ -382,7 +431,6 @@ $role->permissions()->whereIn('permission', ['edit_office', 'delete_office'])->d
 
 ### Removing roles from actors
 
-
 You can remove a role from a user using the method `removeRole`:
 
 ```php
@@ -397,46 +445,37 @@ $user->removeRole($role, $scopedModel);
 
 ## Checking Permissions
 
-Permissions can be assinged both directly and via roles, as permissions can also be assigned to roles.
+You can check both direct and role-based permissions using the Permissions class. There are two methods:
 
-## Checking Direct and Role Permissions
+### Checking any permission
 
-You can use the Permissions class fluent interface to check both permissions directly assigned to a user and permissions assigned via roles:
-
-```php
-use EduLazaro\Larallow\Permissions;
-
-$hasPermission = Permissions::query()
-    ->permissions('edit_post')  // or use enum
-    ->for($user)
-    ->check();
-
-if ($hasPermission) {
-    // User has the permission directly assigned
-}
-```
-
-Use the `permissions` helper:
+The method `check(): returns `true` if the user has any of the given permissions:
 
 ```php
 use EduLazaro\Larallow\Permissions;
 
-$hasPermission = permissions('edit_post')  // or use enum
+$allowed = Permissions::query()
+    ->permissions([UserPermissions::EditPost, UserPermissions::ViewDashboard])
     ->for($user)
-    ->check();
-
-if ($hasPermission) {
-    // User has the permission directly assigned
-}
+    ->check(); // true if at least one is granted
 ```
 
-You can also use the `permissions` method to cehck both direct and role permissions for a user:
+Or using e the `permissions` helper:
 
 ```php
-$canEdit = $user->permissions('permission', 'edit_post')->check();
+$allowed = permissions([UserPermissions::EditPost, UserPermissions::ViewDashboard])
+    ->for($user)
+    ->check(); // true if at least one is granted
 ```
 
-Use the Blade Directive for Permissions:
+Or using e the `permissions` method:
+
+```php
+$allowed = $user->permissions('edit_post')  // or use enum
+    ->check();
+```
+
+Or using the Blade Directive for Permissions:
 
 ```php
 @permissions('edit_post')
@@ -444,12 +483,71 @@ Use the Blade Directive for Permissions:
 @endpermissions
 ```
 
+You can also check the scope:
+
+```php
+@permissions('edit_post', $scope)
+    <button>Edit Post</button>
+@endpermissions
+```
+
+
 The directive accepts permission strings or enums:
 
 ```php
 @permissions(\App\Enums\Permissions\UserPermission::EditPost)
     <button>Edit Post</button>
 @endpermissions
+```
+
+### Checking all permissions
+
+The method `checkAll()` returns `true` only if the user has all of the given permissions:
+
+```php
+$allowed = Permissions::query()
+    ->permissions([UserPermissions::EditPost, UserPermissions::ViewDashboard])
+    ->for($user)
+    ->checkAll(); // true only if both are granted
+```
+
+Or using e the `permissions` helper:
+
+```php
+$allowed = permissions([UserPermissions::EditPost, UserPermissions::ViewDashboard])
+    ->for($user)
+    ->checkAll(); // true if all are granted
+```
+
+Or using e the `permissions` method:
+
+```php
+$allowed = $user->permissions('edit_post')  // or use enum
+    ->checkAll();
+```
+
+Or using the Blade Directive for Permissions:
+
+```php
+@allpermissions('edit_post')
+    <button>Edit Post</button>
+@endallpermissions
+```
+
+The directive accepts permission strings or enums:
+
+```php
+@allpermissions(\App\Enums\Permissions\UserPermission::EditPost)
+    <button>Edit Post</button>
+@endallpermissions
+```
+
+You can also check the scope:
+
+```php
+@allpermissions('edit_post', $scope)
+    <button>Edit Post</button>
+@endallpermissions
 ```
 
 ## Checking Direct Permissions Only

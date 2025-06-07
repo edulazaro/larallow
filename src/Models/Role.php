@@ -12,7 +12,7 @@ class Role extends Model
     protected $fillable = [
         'tenant_type',
         'tenant_id',
-        'scopable_type',
+        'scope_type',
         'actor_type',
         'handle',
         'name',

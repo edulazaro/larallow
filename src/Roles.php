@@ -9,7 +9,7 @@ class Roles
 {
     protected array $roles = [];
     protected $actor = null;
-    protected $scopable = null;
+    protected $scope = null;
     protected $tenant = null;
 
     /**
@@ -52,14 +52,14 @@ class Roles
     }
 
     /**
-     * Optionally set the polymorphic scopable model for scoping the assignment/removal/check.
+     * Optionally set the polymorphic scope model for scoping the assignment/removal/check.
      *
-     * @param mixed|null $scopable
+     * @param mixed|null $scope
      * @return $this
      */
-    public function on($scopable = null): static
+    public function on($scope = null): static
     {
-        $this->scopable = $scopable;
+        $this->scope = $scope;
         return $this;
     }
 
@@ -76,7 +76,7 @@ class Roles
     }
 
     /**
-     * Assign the roles to the actor with optional scopable scope.
+     * Assign the roles to the actor with optional scope scope.
      *
      * @return bool True if assigned, false if no actor.
      */
@@ -88,9 +88,9 @@ class Roles
 
         $actorClass = $this->actor->getMorphClass();
 
-        $scopableClass = null;
-        if ($this->scopable) {
-            $scopableClass = $this->scopable->getMorphClass();
+        $scopeClass = null;
+        if ($this->scope) {
+            $scopeClass = $this->scope->getMorphClass();
         }
 
         $roles = Role::whereIn('id', $this->roles)->get();
@@ -98,7 +98,7 @@ class Roles
         foreach ($roles as $role) {
             $actorType = $role->actor_type;
 
-            $scopableType = $role->scopable_type;
+            $scopeType = $role->scope_type;
 
             if ($actorType !== null && !empty($actorType) && !$actorClass !== 'actorType') {
                 throw new InvalidArgumentException(
@@ -106,9 +106,9 @@ class Roles
                 );
             }
 
-            if ($scopableClass !== null && $scopableType !== null && !empty($scopableType) && $scopableClass !== $scopableType) {
+            if ($scopeClass !== null && $scopeType !== null && !empty($scopeType) && $scopeClass !== $scopeType) {
                 throw new InvalidArgumentException(
-                    "scopable type '{$scopableClass}' is not allowed by the scopable_type of role '{$role->name}'."
+                    "scope type '{$scopeClass}' is not allowed by the scope_type of role '{$role->name}'."
                 );
             }
 
@@ -122,10 +122,10 @@ class Roles
         }
 
         $pivotData = [];
-        if ($scopableClass !== null) {
+        if ($scopeClass !== null) {
             $pivotData = [
-                'scopable_type' => $scopableClass,
-                'scopable_id' => $this->scopable->getKey(),
+                'scope_type' => $scopeClass,
+                'scope_id' => $this->scope->getKey(),
             ];
         }
 
@@ -140,7 +140,7 @@ class Roles
     }
 
     /**
-     * Remove the roles from the actor, optionally scoped by scopable.
+     * Remove the roles from the actor, optionally scoped by scope.
      *
      * @return bool True if removed, false if no actor.
      */
@@ -150,21 +150,21 @@ class Roles
             return false;
         }
 
-        if ($this->scopable) {
-            // Remove roles with matching scopable pivot values
+        if ($this->scope) {
+            // Remove roles with matching scope pivot values
             foreach ($this->roles as $roleId) {
                 $this->actor->roles()
                     ->wherePivot('role_id', $roleId)
-                    ->wherePivot('scopable_type', $this->scopable->getMorphClass())
-                    ->wherePivot('scopable_id', $this->scopable->getKey())
+                    ->wherePivot('scope_type', $this->scope->getMorphClass())
+                    ->wherePivot('scope_id', $this->scope->getKey())
                     ->detach();
             }
         } else {
-            // Remove roles without scopable scope
+            // Remove roles without scope scope
             $this->actor->roles()
                 ->wherePivotIn('role_id', $this->roles)
-                ->wherePivotNull('scopable_type')
-                ->wherePivotNull('scopable_id')
+                ->wherePivotNull('scope_type')
+                ->wherePivotNull('scope_id')
                 ->detach();
         }
 
@@ -172,7 +172,7 @@ class Roles
     }
 
     /**
-     * Comprueba si el actor tiene alguno de los roles indicados en $this->roles, filtrando por scope scopable si está definido.
+     * Check if the actor has any of the roles assgined, fitler by scope, optionally
      *
      * @return bool
      */
@@ -188,15 +188,46 @@ class Roles
 
         return $this->actor->roles
             ->filter(function ($role) {
-                if ($this->scopable === null) {
-                    return $role->pivot->scopable_type === null && $role->pivot->scopable_id === null;
+                if ($this->scope === null) {
+                    return $role->pivot->scope_type === null && $role->pivot->scope_id === null;
                 }
 
-                return $role->pivot->scopable_type === $this->scopable->getMorphClass()
-                    && $role->pivot->scopable_id === $this->scopable->getKey();
+                return $role->pivot->scope_type === $this->scope->getMorphClass()
+                    && $role->pivot->scope_id === $this->scope->getKey();
             })
             ->contains(function ($role) {
                 return in_array($role->id, $this->roles, true) || in_array($role->name, $this->roles, true);
             });
+    }
+
+    /**
+     * Check if the actor has all of the roles in $this->roles, filtered by scope if defined.
+     *
+     * @return bool
+     */
+    public function checkAll(): bool
+    {
+        if (!$this->actor || empty($this->roles)) {
+            return false;
+        }
+
+        $scopedRoles = $this->actor->roles->filter(function ($role) {
+            if ($this->scope === null) {
+                return $role->pivot->scope_type === null && $role->pivot->scope_id === null;
+            }
+
+            return $role->pivot->scope_type === $this->scope->getMorphClass()
+                && $role->pivot->scope_id === $this->scope->getKey();
+        });
+
+        $actorRoleIdentifiers = $scopedRoles->flatMap(fn ($role) => [$role->id, $role->name])->all();
+
+        foreach ($this->roles as $required) {
+            if (!in_array($required, $actorRoleIdentifiers, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
