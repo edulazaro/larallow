@@ -18,7 +18,7 @@ Spatie Permissions is a great package. However it stores permissions in the data
 - Manage roles and permissions for any actor model (User, Client, etc.)
 - Support for scoped roles via polymorphic roleable models (e.g., specific projects, teams)
 - Support for scoped permissions via polymorphic permissionable models (e.g., specific resources)
-- Use PHP enums for defining and restricting permissions in a type-safe manner
+- Define permissions with a fluent API in a similar way you define Laravel routes.
 - Fluent querying and checking with Permissions and Roles helper classes
 - Built-in translation support for role names without external packages
 - Permission hierarchy
@@ -42,6 +42,9 @@ php artisan migrate
 
 Here you can find how to easily edit your models so they accept permissions.
 
+
+### Actor permissions and roles
+
 Add the `HasPermissions` and `HasRoles` traits to your actor models, e.g., User or Client:
 
 ```php
@@ -56,58 +59,277 @@ class User extends Authenticatable
 
 You can skip any of the traits if you do not need them, as both permissions and roles can be handled separately.
 
-## Defining Allowed Permissions with Enums
+### Morph Maps for Models (optional)
 
-Define permissions as PHP 8.1+ backed enums:
+To ensure consistent and secure morph relationships across your application, we recommend explicitly defining all models used with Larallow in your application's morph map. This improves performance and helps avoid unexpected behavior—especially when dealing with multiple actor types or roleable targets. This is optional, as the class names can be used for the relaions, but it's heavily recommended.
+
+How to define the morph map, use a service provider such as `AppServiceProvider`:
 
 ```php
-enum UserPermission: string
+use Illuminate\Database\Eloquent\Relations\Relation;
+
+public function boot(): void
 {
-    case EditPost = 'edit_post';
-    case DeletePost = 'delete_post';
-    case ViewDashboard = 'view_dashboard';
+    Relation::morphMap([
+        'user' => User::class,
+        'client' => Client::class,
+        'project' => Project::class,
+        'account' => Account::class,
+    ]);
 }
 ```
 
-Register allowed permissions on the actor model in the boot method of a service provider:
-
-```php
-User::allowed(UserPermission::class);
-```
-
-This provides an extra layer of security during development, so only allowed permissions can be added.
-
-You can also use the optional `implied` method to create a permission hierarchy:
-
-```php
-enum UserPermission: string
-{
-    case ViewClients = 'view_clients';
-    case ManageClients = 'manage_clients';
-
-    public function implied(): array
-    {
-        return match ($this) {
-            self::ManageClients => [
-                self::ViewClients
-            ],
-            default => [],
-        };
-    }
-
-    public function label(): string
-    {
-        return match ($this) {
-            self::ViewClients => 'View Clients',
-            self::ManageClients => 'Manage Clients',
-        };
-    }
-}
-```
-
-In the previous example, a user who has assigned the `manage_clients` will also be able to `view_clients`, so even if not directly assigned, the checks for `view_clients` will pass.
+Make sure this is called early in the request lifecycle, typically in the `boot()` method of a service provider.
 
 ## Managing Permissions
+
+We will start explaining how to create and configure peremissions in your app.
+
+### Creating Permissions
+
+Permissions are registered using the `Permission::create()` method, passing an array where keys are enum values and values are translated labels:
+
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->label('Manage Offices');
+```
+
+You can also use enums:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create(UserPermission::ManageOffices->value)->label('Manage Offices');
+```
+
+For a specific user type. `for()` specifies the actor model class(es) (e.g. User::class) the permissions apply to:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for(User::class)->label('Manage Offices');
+Permission::create('manage_offices')->for(Client::class)->label('Manage Offices');
+```
+
+Or using the morph map name:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for('user')->label('Manage Offices');
+```
+
+You can define the permission for many user types at a time:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for([User::class, Client::class])->label('Manage Offices');
+```
+
+Or using the morph map name:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for(['user', 'client'])->label('Manage Offices');
+```
+
+For a specific scope. `on()` specifies the scope model class(es) (e.g. Group::class, Office::class) the permissions apply to:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for(User::class)->on(Group::class)->label('Manage Offices');
+Permission::create('manage_clients')->for(User::class)->on(Office::class)->label('Manage Clients');
+```
+
+Or using the morph map name:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for(User::class)->on('group')->label('Manage Offices');
+```
+
+For many scopes at a time:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for(User::class)->on([Group::class, Office::class])->label('Manage Offices');
+```
+
+For many user types and scopes at a time:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create('manage_offices')->for([User::class, Client::class])->on([Group::class, Office::class])->label('Manage Offices');
+```
+
+### Grouping permissions
+
+You can group the permissions using the array notation,:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create([
+    UserPermission::ManageOffices->value => 'Manage offices',
+])->for(User::class)
+  ->on(Group::class);
+
+Permission::create([
+    UserPermission::ManageClients->value => 'Manage clients',
+    UserPermission::ManageProperties->value => 'Manage properties',
+    UserPermission::ManageDevelopments->value => 'Manage developments',
+    UserPermission::ManageAppointments->value => 'Manage appointments',
+    UserPermission::ManageUsers->value => 'Manage users',
+])->for(User::class)
+  ->on([
+      Office::class,
+      Group::class,
+  ]);
+```
+
+### Permission translation
+
+To translate the permissions you define them like:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create([
+    UserPermission::ManageOffices->value => __('Manage offices'),
+])->for(User::class)
+  ->on(Group::class);
+```
+
+Or for asier text management you can use [Laratext](https://github.com/edulazaro/laratext) package:
+
+```php
+use EduLazaro\Larallow\Permission;
+
+Permission::create([
+    UserPermission::ManageOffices->value => text('manage_offices', 'Manage offices'),
+])->for(User::class)
+  ->on(Group::class);
+```
+
+### Getting permissions
+
+The `Permission` class holds all registered permissions in a static registry and provides various methods to query and filter these permissions. The `PermissionQueryBuilder` lets you fluently build queries to filter permissions by properties like actor types, scope types, and handles.
+
+This returns all permissions currently registered.
+
+```php
+use EduLazaro\Larallow\Permission;
+
+$allPermissions = Permission::all();
+
+foreach ($allPermissions as $permission) {
+    echo $permission->handle . ' ' . $permission->label;
+}
+```
+
+To get a Single Permission by Handle
+
+```php
+$permission = Permission::get('edit_post');
+
+if ($permission) {
+    echo "Found permission: " . $permission->handle . PHP_EOL;
+}
+```
+
+### Query builder 
+
+Use `Permission::query()` to start a fluent query and add .where() clauses for filtering. These are the supported filter fields:
+
+- `actor_type`: Filter by actor types (e.g., `App\Models\User`)
+- `scope_type`: Filter by scope types (e.g., `App\Models\Group`)
+- `handle`: Filter by permission handle(s)
+
+For example, to get all permissions for User actor and Group scope:
+
+```php
+$permissions = Permission::query()
+    ->where('actor_type', 'App\Models\User') // or 'user' if defined in the morph map
+    ->where('scope_type', 'App\Models\Group')  // or 'group' if defined in the morph map
+    ->get();
+
+foreach ($permissions as $permission) {
+    echo $permission->handle . " (" . ($permission->label ?? 'No label') . ")" . PHP_EOL;
+}
+```
+
+This returns an array of Permission instances matching both actor and scope.
+
+You can also use the short form:
+
+```php
+$permissions = Permission::where('actor_type', 'user')
+    ->where('scope_type', 'group')
+    ->get();
+```
+
+In order to get the first one:
+
+You can also use the short form:
+
+```php
+$permissions = Permission::where('actor_type', 'user')
+    ->where('scope_type', 'group')
+    ->first();
+```
+
+You can also filter by multiple values:
+
+```php
+$permissions = Permission::query()
+    ->where('handle', ['edit_post', 'delete_post'])
+    ->get();
+```
+
+In order to check If a Permission Exists (Static Check):
+
+```php
+if (Permission::exists('edit_post')) {
+    echo "Permission 'edit_post' exists." . PHP_EOL;
+}
+```
+
+
+In order to check If a Permission is Allowed for Actor and Scope (Static Check):
+
+```php
+$isAllowed = Permission::isAllowedFor(
+    'edit_post',
+    'user',     // actor type
+    'group'     // scope type
+);
+```
+
+This validates if a permission exists and applies to the given actor and scope.
+
+Here is an example Using `create()`, `for()`, `on()`:
+
+```php
+Permission::create([
+    'manage_offices' => 'Manage Offices',
+    'view_reports' => 'View Reports',
+])->for('user')->on(['group', 'office']);
+
+$permissions = Permission::query()
+    ->where('actor_type', 'user')
+    ->where('scope_type', 'group')
+    ->get();
+```
+
+## Permission assignment
 
 This section describes how to manage permissions assigned to actors (e.g., users) standalone, without involving roles.
 
