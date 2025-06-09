@@ -292,4 +292,19 @@ class Permission
     {
         return $this->batchInstances;
     }
+
+    /**
+     * Convert the Permission instance to an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'handle' => $this->handle,
+            'label' => $this->label,
+            'actorTypes' => $this->actorTypes,
+            'scopeTypes' => $this->scopeTypes,
+        ];
+    }
 }
