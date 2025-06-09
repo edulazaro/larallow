@@ -5,8 +5,11 @@ namespace EduLazaro\Larallow\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use EduLazaro\Larallow\Models\RolePermission;
+use EduLazaro\Larallow\Observers\RoleObserver;
 
+#[ObservedBy(RoleObserver::class)]
 class Role extends Model
 {
     protected $fillable = [
@@ -41,6 +44,16 @@ class Role extends Model
     public function permissions(): HasMany
     {
         return $this->hasMany(RolePermission::class);
+    }
+
+    /**
+     * Get all the actor roles
+     *
+     * @return HasMany
+     */
+    public function actorRoles(): HasMany
+    {
+        return $this->hasMany(ActorRole::class);
     }
 
     /**
