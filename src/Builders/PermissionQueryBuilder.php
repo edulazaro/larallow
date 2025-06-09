@@ -86,4 +86,15 @@ class PermissionQueryBuilder
             return true;
         });
     }
+
+    /**
+     * Get all permissions matching the filters in array format.
+     *
+     * @return array[]
+     */
+    public function toArray(): array
+    {
+        $permissions = $this->get();
+        return array_map(fn(Permission $permission) => $permission->toArray(), $permissions);
+    }
 }
