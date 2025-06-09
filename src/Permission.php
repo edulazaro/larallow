@@ -213,7 +213,8 @@ class Permission
 
         $normalized = array_map(function ($type) {
             if (class_exists($type) && is_subclass_of($type, Model::class)) {
-                return Relation::getMorphedModel($type) ?? $type;
+                $morphAlias = ($this->getMorphAliasFromMap($type));
+                return $morphAlias ?? $type;
             }
 
             return $type;
@@ -240,12 +241,20 @@ class Permission
     {
         $scopeTypesArr = is_array($scopeTypes) ? $scopeTypes : [$scopeTypes];
 
+        $normalized = array_map(function ($type) {
+            if (class_exists($type) && is_subclass_of($type, Model::class)) {
+                $morphAlias = $this->getMorphAliasFromMap($type);
+                return $morphAlias ?? $type;
+            }
+            return $type;
+        }, $scopeTypesArr);
+
         if ($this->batchInstances) {
             foreach ($this->batchInstances as $instance) {
-                $instance->scopeTypes = $scopeTypesArr;
+                $instance->scopeTypes = $normalized;
             }
         } else {
-            $this->scopeTypes = $scopeTypesArr;
+            $this->scopeTypes = $normalized;
         }
 
         return $this;
