@@ -4,16 +4,29 @@ namespace EduLazaro\Larallow\Tests\Unit;
 
 use EduLazaro\Larallow\Tests\TestCase;
 use EduLazaro\Larallow\Permissions;
+use EduLazaro\Larallow\Permission;
 use EduLazaro\Larallow\Tests\Support\Models\User;
 use EduLazaro\Larallow\Tests\Support\Enums\UserPermissions;
 
 class ImpliedPermissionsTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Permission::create('manage-posts')->label('Manage Posts')->for(User::class)->implies('view-post');
+
+        Permission::create([
+            'edit-post' => 'Edit Post',
+            'view-post' => 'View Post',
+            'delete-post' => 'Delete Post',
+            'view-dashboard' => 'View Dashboard',
+        ])->for(User::class);
+    }
+
     /** @test */
     public function user_has_permission_if_implied_by_assigned_permission()
     {
-        User::allowed(UserPermissions::class);
-
         $user = User::create();
 
         $user->allow(UserPermissions::ManagePosts);
@@ -30,8 +43,6 @@ class ImpliedPermissionsTest extends TestCase
     /** @test */
     public function user_does_not_have_implied_permission_if_not_configured()
     {
-        User::allowed(UserPermissions::class);
-
         $user = User::create();
 
         $user->allow(UserPermissions::ViewPost);
@@ -47,8 +58,6 @@ class ImpliedPermissionsTest extends TestCase
     /** @test */
     public function user_must_have_explicit_or_implied_permission()
     {
-        User::allowed(UserPermissions::class);
-
         $user = User::create();
 
         $this->assertFalse(
@@ -71,8 +80,6 @@ class ImpliedPermissionsTest extends TestCase
     /** @test */
     public function user_must_have_all_explicit_or_implied_permissions_for_check_all()
     {
-        User::allowed(UserPermissions::class);
-
         $user = User::create();
 
         $user->allow(UserPermissions::ManagePosts); // implies ViewPost

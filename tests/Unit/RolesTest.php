@@ -7,10 +7,30 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use EduLazaro\Larallow\Models\Role;
 use EduLazaro\Larallow\Tests\Support\Models\User;
 use EduLazaro\Larallow\Tests\Support\Models\Client;
+use EduLazaro\Larallow\Permission;
 
 class RolesTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Permission::create('manage-posts')->label('Manage Posts')->for(User::class)->implies('view-post');
+
+        Permission::create([
+            'edit-post' => 'Edit Post',
+            'view-post' => 'View Post',
+            'delete-post' => 'Delete Post',
+            'view-dashboard' => 'View Dashboard',
+        ])->for(User::class);
+
+        Permission::create([
+            'view-account' => 'View Account',
+            'make-payment' => 'Make Payment',
+        ])->for(Client::class);
+    }
 
     protected function createRole(string $handle): Role
     {

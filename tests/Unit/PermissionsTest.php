@@ -6,6 +6,7 @@ use EduLazaro\Larallow\Tests\TestCase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Blade;
 use EduLazaro\Larallow\Permissions;
+use EduLazaro\Larallow\Permission;
 
 use EduLazaro\Larallow\Tests\Support\Models\User;
 use EduLazaro\Larallow\Tests\Support\Models\Client;
@@ -15,27 +16,52 @@ use EduLazaro\Larallow\Tests\Support\Enums\ClientPermissions;
 
 class PermissionsTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Permission::create('manage-posts')->label('Manage Posts')->for(User::class)->implies('view-post');
+
+        Permission::create([
+            'edit-post' => 'Edit Post',
+            'view-post' => 'View Post',
+            'delete-post' => 'Delete Post',
+            'view-dashboard' => 'View Dashboard',
+        ])->for(User::class);
+
+        Permission::create([
+            'view-account' => 'View Account',
+            'make-payment' => 'Make Payment',
+        ])->for(Client::class);
+    }
+
     /** @test */
     public function migrations_are_loaded_and_table_exists()
     {
         $this->assertTrue(Schema::hasTable('actor_permissions'));
     }
 
-    /** @test */
-    public function allowed_permissions_can_be_configured_and_used()
+    public function user_can_use_registered_permissions()
     {
-        User::allowed(UserPermissions::class);
-        Client::allowed(ClientPermissions::class);
+        $user = User::create();
 
-        $this->assertContains(UserPermissions::EditPost->value, User::$allowedPermissions);
-        $this->assertContains(ClientPermissions::ViewAccount->value, Client::$allowedPermissions);
+        $user->allow(UserPermissions::EditPost);
+
+        $this->assertTrue($user->hasPermission(UserPermissions::EditPost));
+    }
+
+    public function client_can_use_registered_permissions()
+    {
+        $client = Client::create();
+
+        $client->allow(ClientPermissions::ViewAccount);
+
+        $this->assertTrue($client->hasPermission(ClientPermissions::ViewAccount));
     }
 
     /** @test */
     public function can_create_permission_for_user_using_enum()
     {
-        User::allowed(UserPermissions::class);
-
         $user = new User();
         $user->save();
 
@@ -51,8 +77,6 @@ class PermissionsTest extends TestCase
     /** @test */
     public function permissions_check_works_with_enum()
     {
-        User::allowed(UserPermissions::class);
-
         $user = new User();
         $user->save();
 
@@ -65,8 +89,6 @@ class PermissionsTest extends TestCase
     /** @test */
     public function permissions_check_works_with_string()
     {
-        User::allowed(UserPermissions::class);
-
         $user = new User();
         $user->save();
 
@@ -79,8 +101,6 @@ class PermissionsTest extends TestCase
     /** @test */
     public function permissions_class_check_method_returns_true_if_allowed()
     {
-        User::allowed(UserPermissions::class);
-
         $user = new User();
         $user->save();
 
@@ -98,8 +118,6 @@ class PermissionsTest extends TestCase
 
     public function blade_directive_returns_true_for_allowed_permission()
     {
-        User::allowed(UserPermissions::class);
-
         $user = new User();
         $user->save();
 
@@ -117,8 +135,6 @@ class PermissionsTest extends TestCase
     /** @test */
     public function permissions_check_returns_true_if_any_permission_is_granted()
     {
-        User::allowed(UserPermissions::class);
-
         $user = new User();
         $user->save();
 
@@ -135,8 +151,6 @@ class PermissionsTest extends TestCase
     /** @test */
     public function permissions_check_all_returns_true_only_if_all_permissions_are_granted()
     {
-        User::allowed(UserPermissions::class);
-
         $user = new User();
         $user->save();
 

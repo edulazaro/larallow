@@ -3,6 +3,7 @@
 namespace EduLazaro\Larallow;
 
 use BackedEnum;
+use EduLazaro\Larallow\Permission;
 
 class Permissions
 {
@@ -62,18 +63,9 @@ class Permissions
         return $this;
     }
 
-    /**
-     * Check if the actor has at least one of the specified permissions, considering both direct and role-based permissions.
-     *
-     * @return bool True if actor has any of the permissions, false otherwise.
-     */
-    public function check(): bool
+    protected function getGrantedPermissions(): array
     {
         $actor = $this->actor ?? auth()->user();
-
-        if (!$actor) {
-            return false;
-        }
 
         $permissions = [];
         if (method_exists($actor, 'hasPermissions')) {
@@ -87,12 +79,10 @@ class Permissions
         $rolePermissions = [];
         if (method_exists($actor, 'hasRolePermissions')) {
             $query = $actor->roles()->with('permissions');
-
             if ($this->scope) {
                 $query->wherePivot('scope_type', $this->scope->getMorphClass())
                     ->wherePivot('scope_id', $this->scope->getKey());
             }
-
             $rolePermissions = $query->get()
                 ->pluck('permissions.*.permission')
                 ->flatten()
@@ -100,13 +90,25 @@ class Permissions
                 ->all();
         }
 
-        $granted = array_unique(array_merge($permissions, $rolePermissions));
+        return array_unique(array_merge($permissions, $rolePermissions));
+    }
+
+
+    /**
+     * Check if the actor has at least one of the specified permissions, considering both direct and role-based permissions.
+     *
+     * @return bool True if actor has any of the permissions, false otherwise.
+     */
+    public function check(): bool
+    {
+        $actor = $this->actor ?? auth()->user();
+        $granted = $this->getGrantedPermissions();
 
         foreach ($this->permissions as $required) {
             $valid = [$required];
 
             foreach ($granted as $grantedPermission) {
-                $implied = $actor::$impliedPermissions[$grantedPermission] ?? [];
+                $implied = Permission::$impliedPermissions[$grantedPermission] ?? [];
 
                 if (in_array($required, $implied, true)) {
                     $valid[] = $grantedPermission;
@@ -130,43 +132,14 @@ class Permissions
     public function checkAll(): bool
     {
         $actor = $this->actor ?? auth()->user();
-
-        if (!$actor) {
-            return false;
-        }
-  
-        $permissions = [];
-        if (method_exists($actor, 'hasPermissions')) {
-            $permissions = $actor->permissions()
-                    ->when($this->scope, fn($q) => $q->whereMorphedTo('scope', $this->scope))
-                    ->pluck('permission')
-                    ->unique()
-                    ->all();
-        }
-
-        $rolePermissions = [];
-        if (method_exists($actor, 'hasRolePermissions')) {
-            $query = $actor->roles()->with('permissions');
-
-            if ($this->scope) {
-                $query->wherePivot('scope_type', $this->scope->getMorphClass())
-                    ->wherePivot('scope_id', $this->scope->getKey());
-            }
-
-            $rolePermissions = $query->get()
-                ->pluck('permissions.*.permission')
-                ->flatten()
-                ->unique()
-                ->all();
-        }
-
-        $granted = array_unique(array_merge($permissions, $rolePermissions));
+        $granted = $this->getGrantedPermissions();
 
         foreach ($this->permissions as $required) {
             $valid = [$required];
 
             foreach ($granted as $grantedPermission) {
-                $implied = $actor::$impliedPermissions[$grantedPermission] ?? [];
+
+                $implied = Permission::$impliedPermissions[$grantedPermission] ?? [];
 
                 if (in_array($required, $implied, true)) {
                     $valid[] = $grantedPermission;

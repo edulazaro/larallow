@@ -5,6 +5,7 @@ namespace EduLazaro\Larallow\Tests\Unit;
 use EduLazaro\Larallow\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use EduLazaro\Larallow\Permissions;
+use EduLazaro\Larallow\Permission;
 
 use EduLazaro\Larallow\Tests\Support\Models\User;
 use EduLazaro\Larallow\Tests\Support\Models\Client;
@@ -16,6 +17,25 @@ use EduLazaro\Larallow\Models\Role;
 class RolesAndPermissionsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Permission::create('manage-posts')->label('Manage Posts')->for(User::class)->implies('view-post');
+
+        Permission::create([
+            'edit-post' => 'Edit Post',
+            'view-post' => 'View Post',
+            'delete-post' => 'Delete Post',
+            'view-dashboard' => 'View Dashboard',
+        ])->for(User::class);
+
+        Permission::create([
+            'view-account' => 'View Account',
+            'make-payment' => 'Make Payment',
+        ])->for(Client::class);
+    }
 
     protected function createUserWithPermissions(array $directPermissions = [], array $rolePermissions = [], $scope = null): User
     {
@@ -53,8 +73,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_true_for_user_with_all_direct_permissions()
     {
-        User::allowed(UserPermissions::class);
-
         $user = $this->createUserWithPermissions([
             UserPermissions::EditPost->value,
             UserPermissions::ViewDashboard->value,
@@ -74,8 +92,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_true_for_user_with_all_permissions_via_roles()
     {
-        User::allowed(UserPermissions::class);
-
         $user = $this->createUserWithPermissions([], [
             UserPermissions::EditPost->value,
             UserPermissions::ViewDashboard->value,
@@ -95,8 +111,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_true_for_user_with_permissions_combined_direct_and_roles()
     {
-        User::allowed(UserPermissions::class);
-
         $user = $this->createUserWithPermissions(
             [UserPermissions::EditPost->value],
             [UserPermissions::ViewDashboard->value]
@@ -116,8 +130,6 @@ class RolesAndPermissionsTest extends TestCase
    /** @test */
     public function check_returns_true_for_user_missing_any_permission()
     {
-        User::allowed(UserPermissions::class);
-
         $user = $this->createUserWithPermissions([UserPermissions::EditPost->value]);
 
         $result = Permissions::query()
@@ -134,8 +146,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_false_for_user_missing_all_permission()
     {
-        User::allowed(UserPermissions::class);
-
         $user = $this->createUserWithPermissions([UserPermissions::EditPost->value]);
 
         $result = Permissions::query()
@@ -152,8 +162,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_true_for_user_with_scope_scope()
     {
-        User::allowed(UserPermissions::class);
-
         $scope = new class {
             public function getMorphClass() { return 'app-scope'; }
             public function getKey() { return 1; }
@@ -177,8 +185,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_false_for_user_with_wrong_scope_scope()
     {
-        User::allowed(UserPermissions::class);
-
         $correctRoleable = new class {
             public function getMorphClass() { return 'app-scope'; }
             public function getKey() { return 1; }
@@ -207,8 +213,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_true_for_client_with_direct_permissions()
     {
-        Client::allowed(ClientPermissions::class);
-
         $client = new Client();
         $client->save();
 
@@ -225,8 +229,6 @@ class RolesAndPermissionsTest extends TestCase
     /** @test */
     public function check_returns_false_for_client_missing_permissions()
     {
-        Client::allowed(ClientPermissions::class);
-
         $client = new Client();
         $client->save();
 

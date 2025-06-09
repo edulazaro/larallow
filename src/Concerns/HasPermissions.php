@@ -5,45 +5,12 @@ namespace EduLazaro\Larallow\Concerns;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use EduLazaro\Larallow\Models\ActorPermission;
 use EduLazaro\Larallow\Permissions;
+use EduLazaro\Larallow\Permission;
 use InvalidArgumentException;
 use BackedEnum;
 
 trait HasPermissions
 {
-    public static $allowedPermissions = [];
-    public static array $impliedPermissions = [];
-
-    public static function allowed(string|array $permissionsEnumClasses): void
-    {
-        $permissions = is_array($permissionsEnumClasses) ? $permissionsEnumClasses : [$permissionsEnumClasses];
-
-        $allPermissions = [];
-
-        if (!empty(static::$allowedPermissions)) {
-            $allPermissions = static::$allowedPermissions;
-        }
-
-        foreach ($permissions as $perm) {
-            if (enum_exists($perm)) {
-                foreach ($perm::cases() as $case) {
-                    $allPermissions[] = $case->value;
-
-                    if (method_exists($case, 'implied')) {
-                        foreach ($case->implied() as $impliedCase) {
-                            static::$impliedPermissions[$case->value][] = $impliedCase instanceof BackedEnum
-                                ? $impliedCase->value
-                                : (string) $impliedCase;
-                        }
-                    }
-                }
-            } else {
-                $allPermissions[] = $perm;
-            }
-        }
-
-        static::$allowedPermissions = array_unique($allPermissions);
-    }
-
     public function permissions(string|array|null $permissions = null): MorphMany|Permissions
     {
         if (is_null($permissions)) {
@@ -57,14 +24,21 @@ trait HasPermissions
     {
         $permissionValue = $permission instanceof BackedEnum ? $permission->value : $permission;
 
-        if (!in_array($permissionValue, static::$allowedPermissions, true)) {
-            throw new InvalidArgumentException("Permission '{$permissionValue}' is not allowed.");
+        $actorType = $this->getMorphClass();
+        $scopeType = $scope?->getMorphClass();
+
+        if (!Permission::exists($permissionValue)) {
+            throw new InvalidArgumentException("Permission '{$permissionValue}' is not registered.");
+        }
+
+        if (!Permission::isAllowedFor($permissionValue, $actorType, $scopeType)) {
+            throw new InvalidArgumentException("Permission '{$permissionValue}' is not allowed for actor type '{$actorType}' and scope type '{$scopeType}'.");
         }
 
         $this->permissions()->create([
             'permission' => $permissionValue,
-            'scope_type' => optional($scope)->getMorphClass(),
-            'scope_id' => optional($scope)->getKey(),
+            'scope_type' => $scopeType,
+            'scope_id' => $scope?->getKey(),
         ]);
     }
 
