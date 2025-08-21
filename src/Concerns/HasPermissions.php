@@ -4,6 +4,7 @@ namespace EduLazaro\Larallow\Concerns;
 
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use EduLazaro\Larallow\Models\ActorPermission;
+use Illuminate\Database\Eloquent\Model;
 use EduLazaro\Larallow\Permissions;
 use EduLazaro\Larallow\Permission;
 use InvalidArgumentException;
@@ -19,27 +20,40 @@ trait HasPermissions
 
         return Permissions::query()->permissions($permissions)->for($this);
     }
-
-    public function allow(string|BackedEnum $permission, $scope = null): void
+    
+    /**
+     * Allow one or multiple permissions for the actor, optionally scoped by a model.
+     *
+     * @param string|BackedEnum|array<string|BackedEnum> $permissions The permission(s) to allow.
+     * @param mixed|null $scope Polymorphic scope model instance or null.
+     * @return void
+     *
+     * @throws InvalidArgumentException If any permission is not registered or not allowed for the actor/scope.
+     */
+    public function allow(string|BackedEnum|array $permissions, $scope = null): void
     {
-        $permissionValue = $permission instanceof BackedEnum ? $permission->value : $permission;
+        $permissionsArray = is_array($permissions) ? $permissions : [$permissions];
 
         $actorType = $this->getMorphClass();
         $scopeType = $scope?->getMorphClass();
 
-        if (!Permission::exists($permissionValue)) {
-            throw new InvalidArgumentException("Permission '{$permissionValue}' is not registered.");
-        }
+        foreach ($permissionsArray as $permission) {
+            $permissionValue = $permission instanceof BackedEnum ? $permission->value : $permission;
 
-        if (!Permission::isAllowedFor($permissionValue, $actorType, $scopeType)) {
-            throw new InvalidArgumentException("Permission '{$permissionValue}' is not allowed for actor type '{$actorType}' and scope type '{$scopeType}'.");
-        }
+            if (!Permission::exists($permissionValue)) {
+                throw new InvalidArgumentException("Permission '{$permissionValue}' is not registered.");
+            }
 
-        $this->permissions()->create([
-            'permission' => $permissionValue,
-            'scope_type' => $scopeType,
-            'scope_id' => $scope?->getKey(),
-        ]);
+            if (!Permission::isAllowedFor($permissionValue, $actorType, $scopeType)) {
+                throw new InvalidArgumentException("Permission '{$permissionValue}' is not allowed for actor type '{$actorType}' and scope type '{$scopeType}'.");
+            }
+
+            $this->permissions()->create([
+                'permission' => $permissionValue,
+                'scope_type' => $scopeType,
+                'scope_id' => $scope?->getKey(),
+            ]);
+        }
     }
 
     public function deny(string|BackedEnum $permission, $scope = null): void
@@ -72,5 +86,43 @@ trait HasPermissions
             ->count();
 
         return $count === count($permissionValues);
+    }
+
+    /**
+     * Synchronize the actor's permissions for a given scope to match the provided permission handles.
+     * 
+     * @param string|BackedEnum|array<string|BackedEnum> $permissionHandles
+     * @param Model|null $scope
+     * @return void
+     */
+    public function syncPermissions(string|BackedEnum|array $permissionHandles, $scope = null): void
+    {
+        $handles = is_array($permissionHandles) ? $permissionHandles : [$permissionHandles];
+
+        $permissionValues = [];
+        foreach ($handles as $permission) {
+            $permissionValues[] = $permission instanceof BackedEnum ? $permission->value : $permission;
+        }
+
+        $permissionValues = array_unique($permissionValues);
+
+        $currentPermissions = $this->permissions()
+            ->whereMorphedTo('scope', $scope)
+            ->pluck('permission')
+            ->toArray();
+
+        $toRemove = array_diff($currentPermissions, $permissionValues);
+        $toAdd = array_diff($permissionValues, $currentPermissions);
+
+        if (!empty($toRemove)) {
+            $this->permissions()
+                ->whereMorphedTo('scope', $scope)
+                ->whereIn('permission', $toRemove)
+                ->delete();
+        }
+
+        foreach ($toAdd as $permissionHandle) {
+            $this->allow($permissionHandle, $scope);
+        }
     }
 }

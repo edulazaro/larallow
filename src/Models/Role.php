@@ -57,6 +57,91 @@ class Role extends Model
     }
 
     /**
+     * Scope to get an array of id => name from an existing query.
+     *
+     * @return array<int, string>
+     */
+    public function scopeOptions($query): array
+    {
+        return $query->pluck('name', 'roles.id')->toArray();
+    }
+
+    /**
+     * Scope to get an array of primary keys from an existing query.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return array<int|string>
+     */
+    public function scopeKeys($query): array
+    {
+        $model = $query->getModel();
+        $keyName = $model->getQualifiedKeyName();
+
+        return $query->pluck('roles.' . $keyName)->toArray();
+    }
+
+    /**
+     * Scope to filter by polymorphic tenant.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Database\Eloquent\Model|null $tenant
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWhereTenant($query, ?Model $tenant)
+    {
+        if ($tenant) {
+            return $query
+                ->where('tenant_type', $tenant->getMorphClass())
+                ->where('tenant_id', $tenant->getKey());
+        }
+
+        // If no tenant provided, return query unmodified or filter NULL if desired
+        return $query;
+    }
+
+    /**
+     * Scope to filter by polymorphic tenant.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param \Illuminate\Database\Eloquent\Model|null $tenant
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWhereScope($query, ?Model $scopeable)
+    {
+        if ($scopeable) {
+            return $query
+                ->where('actor_role.scope_type', $scopeable->getMorphClass())
+                ->where('actor_role.scope_id', $scopeable->getKey());
+        }
+
+        return $query;
+    }
+
+    /**
+     * Scope to filter by actor_type.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $actorType
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWhereActorType($query, string $actorType)
+    {
+        return $query->where('actor_type', $actorType);
+    }
+
+    /**
+     * Scope to filter by scope_type.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $scopeType
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWhereScopeType($query, string $scopeType)
+    {
+        return $query->where('scope_type', $scopeType);
+    }
+
+    /**
      * Get the translated name based on the current locale,
      *
      * @return string|null

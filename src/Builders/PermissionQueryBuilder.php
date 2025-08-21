@@ -3,6 +3,7 @@
 namespace EduLazaro\Larallow\Builders;
 
 use EduLazaro\Larallow\Permission;
+use Illuminate\Support\Collection;
 
 class PermissionQueryBuilder
 {
@@ -26,6 +27,28 @@ class PermissionQueryBuilder
     {
         $this->filters[$field] = $value;
         return $this;
+    }
+
+    /**
+     * Filter permissions by actor type.
+     *
+     * @param string $actorType
+     * @return $this
+     */
+    public function whereActorType(string $actorType): static
+    {
+        return $this->where('actor_type', $actorType);
+    }
+
+    /**
+     * Filter permissions by scope type.
+     *
+     * @param string $scopeType
+     * @return $this
+     */
+    public function whereScopeType(string $scopeType): static
+    {
+        return $this->where('scope_type', $scopeType);
     }
 
     /**
@@ -88,6 +111,30 @@ class PermissionQueryBuilder
     }
 
     /**
+     * Pluck specific fields from the matched permissions as a Collection.
+     *
+     * @param string $valueField The property to use as the value.
+     * @param string|null $keyField The property to use as the key (optional).
+     * @return Collection<string|int, mixed> A Laravel Collection of the plucked values.
+     */
+    public function pluck(string $valueField, ?string $keyField = null): Collection
+    {
+        $results = [];
+        foreach ($this->get() as $permission) {
+            $value = $permission->{$valueField} ?? null;
+            $key = $keyField ? ($permission->{$keyField} ?? null) : null;
+
+            if ($key !== null) {
+                $results[$key] = $value;
+            } else {
+                $results[] = $value;
+            }
+        }
+
+        return collect($results);
+    }
+
+    /**
      * Get all permissions matching the filters in array format.
      *
      * @return array[]
@@ -96,5 +143,21 @@ class PermissionQueryBuilder
     {
         $permissions = $this->get();
         return array_map(fn(Permission $permission) => $permission->toArray(), $permissions);
+    }
+
+    /**
+     * Get permissions as an array of handle => label for select options.
+     *
+     * @return array<string, string>
+     */
+    public function options(): array
+    {
+        $options = [];
+
+        foreach ($this->get() as $permission) {
+            $options[$permission->handle] = $permission->label ?? $permission->handle;
+        }
+
+        return $options;
     }
 }

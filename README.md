@@ -59,7 +59,7 @@ class User extends Authenticatable
 
 You can skip any of the traits if you do not need them, as both permissions and roles can be handled separately.
 
-### Morph Maps for Models (optional)
+### Morph Maps for Models (recommended)
 
 To ensure consistent and secure morph relationships across your application, we recommend explicitly defining all models used with Larallow in your application's morph map. This improves performance and helps avoid unexpected behavior—especially when dealing with multiple actor types or roleable targets. This is optional, as the class names can be used for the relaions, but it's heavily recommended.
 
@@ -208,7 +208,7 @@ Permission::create([
   ->on(Group::class);
 ```
 
-Or for asier text management you can use [Laratext](https://github.com/edulazaro/laratext) package:
+Or for esier text management you can use [Laratext](https://github.com/edulazaro/laratext) package:
 
 ```php
 use EduLazaro\Larallow\Permission;
@@ -266,7 +266,38 @@ foreach ($permissions as $permission) {
 }
 ```
 
+Or you can slo do:
+
+```php
+$permissions = Permission::query()
+     ->whereActorType('user')
+    ->whereScopeType('group')
+    ->get();
+
+foreach ($permissions as $permission) {
+    echo $permission->handle . " (" . ($permission->label ?? 'No label') . ")" . PHP_EOL;
+}
+
 This returns an array of Permission instances matching both actor and scope.
+
+You can also set an array and Puck the fields:
+
+```php
+$options = Permission::query()
+    ->where('actor_type', 'user')
+    ->where('scope_type', 'group')
+    ->pluck('label', 'handle')
+    ->toArray();
+```
+
+You can also get the options as an array of `[handle => label]` using the options method:
+
+```php
+    $this->permissionOptions = Permission::query()
+        ->whereActorType('user')
+        ->whereScopeType('group')
+        ->options();
+```
 
 You can also use the short form:
 
@@ -277,6 +308,12 @@ $permissions = Permission::where('actor_type', 'user')
 ```
 
 In order to get the first one:
+
+```php
+$options = Permission::query()
+    ->whereScope('group')
+    ->first();
+```
 
 You can also use the short form:
 
@@ -301,7 +338,6 @@ if (Permission::exists('edit_post')) {
     echo "Permission 'edit_post' exists." . PHP_EOL;
 }
 ```
-
 
 In order to check If a Permission is Allowed for Actor and Scope (Static Check):
 
@@ -333,7 +369,7 @@ $permissions = Permission::query()
 
 This section describes how to manage permissions assigned to actors (e.g., users) standalone, without involving roles.
 
-### Adding Permissions
+### Assioging Permissions
 
 You can assign permissions directly to an actor instance (e.g., a User) using the `allow` method from the `HasPermissions` concern or via the Permissions class:
 
@@ -364,6 +400,12 @@ Adding permissions using the permissions method:
 $user->permissions('view_clients')->allow();
 ```
 
+You can select and assing many permissions using an array:
+
+```php
+$user->permissions(['manage_users', 'manage_blog'])->allow();
+```
+
 You can also use the optional scope. If permissions are scoped to a specific model (e.g., a content item or project), you can specify the related model when denying the permission:
 
 ```php
@@ -387,6 +429,12 @@ permissions('edit_office')
     ->on($office)
     ->allow();
 
+```
+
+You can allow many permission directly at a time:
+
+```php
+$user->allow(['edit_office', 'manage_blog'], $office);
 ```
 
 ### Removing Permissions
@@ -448,6 +496,14 @@ permissions('edit_office')
 
 ```
 
+### Syncing Permissions
+
+You can use the method `syncPermissions` on a model using the the `HarPermissions` trait in order to pass an array of permissions and sync them. This method will remove from the user the permissions which are not specified and will make sure the specified permissions are assigned. You can optionaly pass an scope as a second argument:
+
+```php
+$this->user->syncPermissions(['manage_offices', 'delete_users'], $office);
+```
+
 ## Managing Roles
 
 This setup allows you to manage roles and their associated permissions easily, keeping role definitions and permission assignments clear and flexible.
@@ -501,13 +557,28 @@ roles($roleOrRoleIds)
 You can assing a role to a user:
 
 ```php
-$user->assignRole($role);
+
+$role = Role::find(4);
+
+$user->assignRole($role); // You can pass the role
+$user->assignRole(4); // Or also de role ID
+```
+
+You can assing multiple roles to a user:
+
+```php
+$roleA = Role::find(1);
+$roleB = Role::find(2);
+$roleC = 3;
+
+$user->assignRoles([$roleA, $roleB, $roleC]);s
 ```
 
 You can also specify a scope or context model, which can be an organisaton, an office, a department... etc.
 
 ```php
 $user->assignRole($role, $scopedModel);
+$user->assignRoles($roles, $scopedModel);
 ```
 
 The `tenant()` method allows you to optionally specify the tenant model (e.g., a Group, Company, or Organization) in a multi-tenant application context when working with roles. This enables scoping role assignments, removals, and checks to a particular tenant, ensuring roles belong to the correct tenant context.

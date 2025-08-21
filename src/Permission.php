@@ -48,6 +48,12 @@ class Permission
         return static::$registry[$handle] ?? null;
     }
 
+    /**
+     * Get the first permission from the registry.
+     *
+     * @param string $handle
+     * @return Permission|null
+     */
     public static function first(): ?Permission
     {
         return count(static::$registry) ? reset(static::$registry) : null;

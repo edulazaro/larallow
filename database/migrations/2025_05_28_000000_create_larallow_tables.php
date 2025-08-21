@@ -35,7 +35,6 @@ return new class extends Migration
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
             $table->string('scope_type', 80)->nullable();
             $table->unsignedBigInteger('scope_id')->nullable();
-            $table->timestamps();
 
             $table->unique(['actor_type', 'actor_id', 'role_id', 'scope_type', 'scope_id'], 'unique_actor_role');
         });
