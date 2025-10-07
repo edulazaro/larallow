@@ -299,6 +299,27 @@ class Permission
     }
 
     /**
+     * Get all permissions that include the given permission (the permission itself + any that imply it)
+     *
+     * @param string|BackedEnum $permission The permission to check
+     * @return array Array of permission strings
+     */
+    public static function getPermissionsIncluding(string|BackedEnum $permission): array
+    {
+        $permissionValue = $permission instanceof BackedEnum ? $permission->value : $permission;
+        $result = [$permissionValue];
+
+        // Find all permissions that imply this one
+        foreach (static::$impliedPermissions as $implier => $implied) {
+            if (in_array($permissionValue, $implied, true)) {
+                $result[] = $implier;
+            }
+        }
+
+        return array_unique($result);
+    }
+
+    /**
      * Get batch instances
      *
      * @return $this

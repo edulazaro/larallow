@@ -125,4 +125,93 @@ trait HasPermissions
             $this->allow($permissionHandle, $scope);
         }
     }
+
+    /**
+     * Scope to filter actors that have a specific permission either directly or through a role.
+     * Automatically includes permissions that imply the requested permission.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string|BackedEnum $permission The permission to check
+     * @param \Illuminate\Database\Eloquent\Model|null $scope Optional scope (Office, Group, etc.)
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithPermission($query, string|BackedEnum $permission, $scope = null)
+    {
+        // Get the requested permission + any permissions that imply it
+        $permissionValues = Permission::getPermissionsIncluding($permission);
+
+        return $query->where(function($q) use ($permissionValues, $scope) {
+            $q->whereHas('permissions', function($q2) use ($permissionValues, $scope) {
+                $q2->whereIn('permission', $permissionValues);
+                if ($scope) {
+                    $q2->whereMorphedTo('scope', $scope);
+                }
+            })
+            ->orWhereHas('roles', function($q2) use ($permissionValues, $scope) {
+                if ($scope) {
+                    $q2->where('actor_role.scope_type', $scope->getMorphClass())
+                       ->where('actor_role.scope_id', $scope->getKey());
+                }
+                $q2->whereHas('permissions', function($q3) use ($permissionValues) {
+                    $q3->whereIn('permission', $permissionValues);
+                });
+            });
+        });
+    }
+
+    /**
+     * Scope to filter actors that have any of the specified permissions either directly or through a role.
+     * Automatically includes permissions that imply the requested permissions.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array<string|BackedEnum> $permissions Array of permissions to check
+     * @param \Illuminate\Database\Eloquent\Model|null $scope Optional scope (Office, Group, etc.)
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithAnyPermission($query, array $permissions, $scope = null)
+    {
+        $permissionValues = [];
+        foreach ($permissions as $permission) {
+            // For each permission, include it + any permissions that imply it
+            $expanded = Permission::getPermissionsIncluding($permission);
+            $permissionValues = array_merge($permissionValues, $expanded);
+        }
+        $permissionValues = array_unique($permissionValues);
+
+        return $query->where(function($q) use ($permissionValues, $scope) {
+            $q->whereHas('permissions', function($q2) use ($permissionValues, $scope) {
+                $q2->whereIn('permission', $permissionValues);
+                if ($scope) {
+                    $q2->whereMorphedTo('scope', $scope);
+                }
+            })
+            ->orWhereHas('roles', function($q2) use ($permissionValues, $scope) {
+                if ($scope) {
+                    $q2->where('actor_role.scope_type', $scope->getMorphClass())
+                       ->where('actor_role.scope_id', $scope->getKey());
+                }
+                $q2->whereHas('permissions', function($q3) use ($permissionValues) {
+                    $q3->whereIn('permission', $permissionValues);
+                });
+            });
+        });
+    }
+
+    /**
+     * Scope to filter actors that have all of the specified permissions either directly or through roles.
+     * Automatically includes permissions that imply the requested permissions.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array<string|BackedEnum> $permissions Array of permissions to check
+     * @param \Illuminate\Database\Eloquent\Model|null $scope Optional scope (Office, Group, etc.)
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithAllPermissions($query, array $permissions, $scope = null)
+    {
+        foreach ($permissions as $permission) {
+            $query = $query->withPermission($permission, $scope);
+        }
+
+        return $query;
+    }
 }
