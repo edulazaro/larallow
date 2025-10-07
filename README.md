@@ -351,19 +351,28 @@ $isAllowed = Permission::isAllowedFor(
 
 This validates if a permission exists and applies to the given actor and scope.
 
-Here is an example Using `create()`, `for()`, `on()`:
+### Permission Implications
+
+Larallow supports permission implications through the `implies()` method when defining permissions. This allows you to create permission hierarchies where higher-level permissions automatically grant lower-level permissions.
+
+When creating permissions, you can specify that one permission implies another:
 
 ```php
 Permission::create([
-    'manage_offices' => 'Manage Offices',
-    'view_reports' => 'View Reports',
-])->for('user')->on(['group', 'office']);
+    UserPermission::ManageProperties->value => text('manage_properties', 'Manage Properties'),
+])->for(User::class)
+  ->on([Office::class, Group::class])
+  ->implies([UserPermission::HandleProperties]);
 
-$permissions = Permission::query()
-    ->where('actor_type', 'user')
-    ->where('scope_type', 'group')
-    ->get();
+Permission::create([
+    UserPermission::HandleProperties->value => text('handle_properties', 'Handle Properties'),
+])->for(User::class)
+  ->on([Office::class, Group::class]);
 ```
+
+In this example, `ManageProperties` implies `HandleProperties`, meaning users with `ManageProperties` automatically have `HandleProperties` as well.
+
+The query scopes automatically resolve permission implications when filtering users:
 
 ## Permission assignment
 
