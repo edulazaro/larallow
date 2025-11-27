@@ -82,7 +82,10 @@ trait HasPermissions
 
         $count = $this->permissions()
             ->whereIn('permission', $permissionValues)
-            ->when($scope, fn ($q) => $q->whereMorphedTo('scope', $scope))
+            ->when($scope,
+                fn ($q) => $q->whereMorphedTo('scope', $scope),
+                fn ($q) => $q->whereNull('scope_type')->whereNull('scope_id')
+            )
             ->count();
 
         return $count === count($permissionValues);

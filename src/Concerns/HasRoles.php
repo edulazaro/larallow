@@ -18,7 +18,8 @@ trait HasRoles
     public function roles(int|array|null $roles = null): MorphToMany|Roles
     {
         if (is_null($roles)) {
-            return $this->morphToMany(Role::class, 'actor', 'actor_role');
+            return $this->morphToMany(Role::class, 'actor', 'actor_role')
+                ->withPivot(['scope_type', 'scope_id']);
         }
 
         return Roles::query()->for($this)->roles($roles);
@@ -35,18 +36,28 @@ trait HasRoles
     {
         $roleId = $role instanceof Role ? $role->id : $role;
 
-        $pivotData = [];
+        // Check if already assigned for this specific scope
+        $exists = $this->roles()
+            ->where('roles.id', $roleId)
+            ->where(function ($query) use ($scope) {
+                if ($scope) {
+                    $query->where('actor_role.scope_type', $scope->getMorphClass())
+                          ->where('actor_role.scope_id', $scope->getKey());
+                } else {
+                    $query->whereNull('actor_role.scope_type')
+                          ->whereNull('actor_role.scope_id');
+                }
+            })
+            ->exists();
 
-        if ($scope) {
-            $pivotData = [
+        if (!$exists) {
+            $pivotData = $scope ? [
                 'scope_type' => $scope->getMorphClass(),
                 'scope_id' => $scope->getKey(),
-            ];
-        }
+            ] : [];
 
-        $this->roles()->syncWithoutDetaching([
-            $roleId => $pivotData,
-        ]);
+            $this->roles()->attach($roleId, $pivotData);
+        }
 
         $this->load('roles');
     }
@@ -60,25 +71,9 @@ trait HasRoles
      */
     public function assignRoles(array $roles, $scope = null): void
     {
-        $pivotData = [];
-
-        if ($scope) {
-            $pivotData = [
-                'scope_type' => $scope->getMorphClass(),
-                'scope_id' => $scope->getKey(),
-            ];
-        }
-
-        $syncData = [];
-
         foreach ($roles as $role) {
-            $roleId = $role instanceof Role ? $role->id : $role;
-            $syncData[$roleId] = $pivotData;
+            $this->assignRole($role, $scope);
         }
-
-        $this->roles()->syncWithoutDetaching($syncData);
-
-        $this->load('roles');
     }
 
     /**
@@ -123,7 +118,7 @@ trait HasRoles
                 }
 
                 return $role->pivot->scope_type === $scope->getMorphClass()
-                    && $role->pivot->scope_id === $scope->getKey();
+                    && (int) $role->pivot->scope_id === (int) $scope->getKey();
             })
             ->contains('handle', $roleName);
     }
@@ -222,55 +217,53 @@ trait HasRoles
             ->exists();
     }
 
-public function syncRoles(array|int|Role $roles, $scope = null): void
-{
+    public function syncRoles(array|int|Role $roles, $scope = null): void
+    {
 
-    $roleIds = collect(is_array($roles) ? $roles : [$roles])
-        ->map(fn($role) => $role instanceof Role ? $role->id : $role)
-        ->unique()
-        ->values()
-        ->all();
+        $roleIds = collect(is_array($roles) ? $roles : [$roles])
+            ->map(fn($role) => $role instanceof Role ? $role->id : $role)
+            ->unique()
+            ->values()
+            ->all();
 
-    $pivotTable = 'actor_role';
+        $pivotTable = 'actor_role';
 
-    $currentRoleIds = $this->roles()
-        ->where(function ($query) use ($scope, $pivotTable) {
+        $currentRoleIds = $this->roles()
+            ->where(function ($query) use ($scope, $pivotTable) {
+                if ($scope) {
+                    $query->where("$pivotTable.scope_type", $scope->getMorphClass())
+                        ->where("$pivotTable.scope_id", $scope->getKey());
+                } else {
+                    $query->whereNull("$pivotTable.scope_type")
+                        ->whereNull("$pivotTable.scope_id");
+                }
+            })
+            ->pluck('roles.id')
+            ->toArray();
+
+        $toRemove = array_diff($currentRoleIds, $roleIds);
+        $toAdd = array_diff($roleIds, $currentRoleIds);
+
+        if (!empty($toRemove)) {
+            $detachQuery = $this->roles();
+
+            $detachQuery->wherePivotIn('role_id', $toRemove);
+
             if ($scope) {
-                $query->where("$pivotTable.scope_type", $scope->getMorphClass())
-                      ->where("$pivotTable.scope_id", $scope->getKey());
+                $detachQuery->wherePivot('scope_type', $scope->getMorphClass())
+                            ->wherePivot('scope_id', $scope->getKey());
             } else {
-                $query->whereNull("$pivotTable.scope_type")
-                      ->whereNull("$pivotTable.scope_id");
+                $detachQuery->wherePivotNull('scope_type')
+                            ->wherePivotNull('scope_id');
             }
-        })
-        ->pluck('roles.id')
-        ->toArray();
 
-    $toRemove = array_diff($currentRoleIds, $roleIds);
-    $toAdd = array_diff($roleIds, $currentRoleIds);
-
-    if (!empty($toRemove)) {
-        $detachQuery = $this->roles();
-
-        $detachQuery->wherePivotIn('role_id', $toRemove);
-
-        if ($scope) {
-            $detachQuery->wherePivot('scope_type', $scope->getMorphClass())
-                        ->wherePivot('scope_id', $scope->getKey());
-        } else {
-            $detachQuery->wherePivotNull('scope_type')
-                        ->wherePivotNull('scope_id');
+            $detachQuery->detach();
         }
 
-        $detachQuery->detach();
+        foreach ($toAdd as $roleId) {
+            $this->assignRole($roleId, $scope);
+        }
+
+        $this->load('roles');
     }
-
-    foreach ($toAdd as $roleId) {
-        $this->assignRole($roleId, $scope);
-    }
-
-    $this->load('roles');
-}
-
-
 }

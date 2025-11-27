@@ -47,6 +47,34 @@ class Role extends Model
     }
 
     /**
+     * Add one or more permissions to this role.
+     *
+     * @param string|array $permissions
+     * @return void
+     */
+    public function addPermission(string|array $permissions): void
+    {
+        $permissions = is_array($permissions) ? $permissions : [$permissions];
+
+        foreach ($permissions as $permission) {
+            $this->permissions()->firstOrCreate(['permission' => $permission]);
+        }
+    }
+
+    /**
+     * Remove one or more permissions from this role.
+     *
+     * @param string|array $permissions
+     * @return void
+     */
+    public function removePermission(string|array $permissions): void
+    {
+        $permissions = is_array($permissions) ? $permissions : [$permissions];
+
+        $this->permissions()->whereIn('permission', $permissions)->delete();
+    }
+
+    /**
      * Get all the actor roles
      *
      * @return HasMany
