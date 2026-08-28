@@ -48,7 +48,11 @@ trait HasPermissions
                 throw new InvalidArgumentException("Permission '{$permissionValue}' is not allowed for actor type '{$actorType}' and scope type '{$scopeType}'.");
             }
 
-            $this->permissions()->create([
+            // firstOrCreate y no create: conceder dos veces el mismo permiso deja una
+            // fila, no dos. El indice unique no puede garantizarlo por si solo porque
+            // scope_type y scope_id admiten nulos, y en SQL un nulo no es igual a otro
+            // nulo, asi que dos concesiones globales identicas lo atraviesan.
+            $this->permissions()->firstOrCreate([
                 'permission' => $permissionValue,
                 'scope_type' => $scopeType,
                 'scope_id' => $scope?->getKey(),
