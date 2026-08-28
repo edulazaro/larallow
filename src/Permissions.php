@@ -67,6 +67,14 @@ class Permissions
     {
         $actor = $this->actor ?? auth()->user();
 
+        // Sin actor no hay nada concedido, y hay que salir antes de los method_exists:
+        // auth()->user() es null para un invitado, y method_exists(null, ...) es un
+        // TypeError desde PHP 8. Sin esto, un @permissions en una pagina publica tumba
+        // la pagina entera. Roles::check() ya sale asi; esta clase no lo hacia.
+        if (!$actor) {
+            return [];
+        }
+
         $permissions = [];
         if (method_exists($actor, 'hasPermissions')) {
             $permissions = $actor->permissions()
