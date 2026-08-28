@@ -2,8 +2,11 @@
 # Larallow for Laravel: A package to handle roles and permissions
 
 <p align="center">
-    <a href="https://packagist.org/packages/edulazaro/larallow"><img src="https://img.shields.io/packagist/dt/edulazaro/larallow" alt="Total Downloads"></a>
+    <a href="https://github.com/edulazaro/larallow/actions/workflows/tests.yml"><img src="https://github.com/edulazaro/larallow/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
     <a href="https://packagist.org/packages/edulazaro/larallow"><img src="https://img.shields.io/packagist/v/edulazaro/larallow" alt="Latest Stable Version"></a>
+    <a href="https://packagist.org/packages/edulazaro/larallow"><img src="https://img.shields.io/packagist/dt/edulazaro/larallow" alt="Total Downloads"></a>
+    <a href="https://packagist.org/packages/edulazaro/larallow"><img src="https://img.shields.io/packagist/php-v/edulazaro/larallow" alt="PHP Version"></a>
+    <a href="https://github.com/edulazaro/larallow/blob/main/LICENSE.md"><img src="https://img.shields.io/packagist/l/edulazaro/larallow" alt="License"></a>
 </p>
 
 **Larallow** is a flexible Laravel package for managing roles and permissions with advanced features including scoped roles and permissions, polymorphic relations, translation support, and seamless integration with PHP enums for permissions. Zero configuration required.
