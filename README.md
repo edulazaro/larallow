@@ -154,6 +154,15 @@ $acmeManager = Role::create([
 Both companies can now have a `manager` role and they are separate definitions: the unique
 index is on the handle plus the tenant, so handles are free to repeat.
 
+The tables say the same thing. The tenant sits on the definition and on nothing else:
+
+    roles                tenant + scope       the definition
+    actor_role                    scope       a grant
+    actor_permissions             scope       a grant
+
+Neither grant table carries a tenant. `actor_role` does not need one, because it already
+points at the role and the role knows whose it is.
+
 One question settles it: **delete the tenant and a role definition disappears; delete the
 scope and only that one grant disappears.**
 
