@@ -107,20 +107,20 @@ class Roles
             // ningun rol con actor_type se podia asignar por aqui, ni el que encajaba.
             if ($actorType !== null && !empty($actorType) && $actorClass !== $actorType) {
                 throw new InvalidArgumentException(
-                    "Actor type '{$actorClass}' is not allowed by the actor_type of role '{$role->name}'."
+                    "Actor type '{$actorClass}' is not allowed by the actor_type of role '{$role->handle}'."
                 );
             }
 
             if ($scopeClass !== null && $scopeType !== null && !empty($scopeType) && $scopeClass !== $scopeType) {
                 throw new InvalidArgumentException(
-                    "scope type '{$scopeClass}' is not allowed by the scope_type of role '{$role->name}'."
+                    "scope type '{$scopeClass}' is not allowed by the scope_type of role '{$role->handle}'."
                 );
             }
 
             if ($this->tenant) {
                 if ($role->tenant_type !== $this->tenant->getMorphClass() || $role->tenant_id !== $this->tenant->getKey()) {
                     throw new InvalidArgumentException(
-                        "Role '{$role->name}' does not belong to tenant '{$this->tenant->getMorphClass()}#{$this->tenant->getKey()}'."
+                        "Role '{$role->handle}' does not belong to tenant '{$this->tenant->getMorphClass()}#{$this->tenant->getKey()}'."
                     );
                 }
             }

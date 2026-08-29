@@ -47,4 +47,19 @@ class AssignRespectsActorTypeTest extends TestCase
 
         $this->assertTrue($client->fresh()->roles->contains($role));
     }
+
+    public function test_the_error_names_the_role_by_its_handle(): void
+    {
+        // El mensaje usaba $role->name, que es nullable, asi que un rol sin nombre
+        // producia "of role ''" y no decia cual era. handle es obligatorio.
+        $role = Role::create(['handle' => 'editor', 'actor_type' => User::class]);
+        $client = Client::create();
+
+        try {
+            $client->roles([$role->id])->assign();
+            $this->fail('deberia haber lanzado');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString("role 'editor'", $e->getMessage());
+        }
+    }
 }
