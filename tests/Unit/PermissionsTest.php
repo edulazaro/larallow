@@ -42,7 +42,8 @@ class PermissionsTest extends TestCase
             ->on(Account::class);
     }
 
-        public function test_migrations_are_loaded_and_table_exists()
+    /** @test */
+    public function migrations_are_loaded_and_table_exists()
     {
         $this->assertTrue(Schema::hasTable('actor_permissions'));
     }
@@ -65,7 +66,8 @@ class PermissionsTest extends TestCase
         $this->assertTrue($client->hasPermission(ClientPermissions::ViewAccount));
     }
 
-        public function test_can_create_permission_for_user_using_enum()
+    /** @test */
+    public function can_create_permission_for_user_using_enum()
     {
         $user = new User();
         $user->save();
@@ -79,7 +81,8 @@ class PermissionsTest extends TestCase
         ]);
     }
 
-        public function test_permissions_check_works_with_enum()
+    /** @test */
+    public function permissions_check_works_with_enum()
     {
         $user = new User();
         $user->save();
@@ -90,7 +93,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->hasPermission(UserPermissions::DeletePost));
     }
 
-        public function test_permissions_check_works_with_string()
+    /** @test */
+    public function permissions_check_works_with_string()
     {
         $user = new User();
         $user->save();
@@ -101,7 +105,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->hasPermission('delete-post'));
     }
 
-        public function test_permissions_class_check_method_returns_true_if_allowed()
+    /** @test */
+    public function permissions_class_check_method_returns_true_if_allowed()
     {
         $user = new User();
         $user->save();
@@ -116,7 +121,9 @@ class PermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-        public function test_blade_directive_returns_true_for_allowed_permission()
+    /** @test */
+
+    public function blade_directive_returns_true_for_allowed_permission()
     {
         $user = new User();
         $user->save();
@@ -132,7 +139,8 @@ class PermissionsTest extends TestCase
         $this->assertStringContainsString('Allowed', $rendered);
     }
 
-        public function test_permissions_check_returns_true_if_any_permission_is_granted()
+    /** @test */
+    public function permissions_check_returns_true_if_any_permission_is_granted()
     {
         $user = new User();
         $user->save();
@@ -147,7 +155,8 @@ class PermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-        public function test_permissions_check_all_returns_true_only_if_all_permissions_are_granted()
+    /** @test */
+    public function permissions_check_all_returns_true_only_if_all_permissions_are_granted()
     {
         $user = new User();
         $user->save();
@@ -169,7 +178,8 @@ class PermissionsTest extends TestCase
         );
     }
 
-        public function test_user_can_have_scoped_permission()
+    /** @test */
+    public function user_can_have_scoped_permission()
     {
         $user = User::create();
         $account = Account::create();
@@ -180,7 +190,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->hasPermission('manage-account')); // without scope
     }
 
-        public function test_scoped_permission_does_not_grant_global_permission()
+    /** @test */
+    public function scoped_permission_does_not_grant_global_permission()
     {
         $user = User::create();
         $account = Account::create();
@@ -190,7 +201,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->hasPermission('manage-account'));
     }
 
-        public function test_scoped_permission_is_specific_to_scope_instance()
+    /** @test */
+    public function scoped_permission_is_specific_to_scope_instance()
     {
         $user = User::create();
         $account1 = Account::create();
@@ -202,7 +214,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->hasPermission('manage-account', $account2));
     }
 
-        public function test_user_can_have_permission_on_multiple_scopes()
+    /** @test */
+    public function user_can_have_permission_on_multiple_scopes()
     {
         $user = User::create();
         $account1 = Account::create();
@@ -215,7 +228,8 @@ class PermissionsTest extends TestCase
         $this->assertTrue($user->hasPermission('manage-account', $account2));
     }
 
-        public function test_scoped_permission_is_stored_in_database()
+    /** @test */
+    public function scoped_permission_is_stored_in_database()
     {
         $user = User::create();
         $account = Account::create();
@@ -231,7 +245,8 @@ class PermissionsTest extends TestCase
         ]);
     }
 
-        public function test_deny_removes_scoped_permission()
+    /** @test */
+    public function deny_removes_scoped_permission()
     {
         $user = User::create();
         $account = Account::create();
@@ -243,7 +258,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($user->hasPermission('manage-account', $account));
     }
 
-        public function test_deny_scoped_permission_does_not_affect_other_scopes()
+    /** @test */
+    public function deny_scoped_permission_does_not_affect_other_scopes()
     {
         $user = User::create();
         $account1 = Account::create();
@@ -262,7 +278,8 @@ class PermissionsTest extends TestCase
     // Query Scope Tests
     // ========================================
 
-        public function test_withPermission_finds_users_with_direct_permission()
+    /** @test */
+    public function withPermission_finds_users_with_direct_permission()
     {
         $user1 = User::create();
         $user2 = User::create();
@@ -279,7 +296,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($usersWithEditPost->contains($user3));
     }
 
-        public function test_withPermission_finds_users_with_permission_via_role()
+    /** @test */
+    public function withPermission_finds_users_with_permission_via_role()
     {
         $user1 = User::create();
         $user2 = User::create();
@@ -296,7 +314,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($usersWithEditPost->contains($user2));
     }
 
-        public function test_withPermission_finds_users_with_implied_permission()
+    /** @test */
+    public function withPermission_finds_users_with_implied_permission()
     {
         $user = User::create();
 
@@ -308,7 +327,8 @@ class PermissionsTest extends TestCase
         $this->assertTrue($usersWithViewPost->contains($user));
     }
 
-        public function test_withPermission_respects_scope()
+    /** @test */
+    public function withPermission_respects_scope()
     {
         $user1 = User::create();
         $user2 = User::create();
@@ -324,7 +344,8 @@ class PermissionsTest extends TestCase
         $this->assertTrue($usersWithScopedPermission->contains($user1));
     }
 
-        public function test_withAnyPermission_finds_users_with_any_of_the_permissions()
+    /** @test */
+    public function withAnyPermission_finds_users_with_any_of_the_permissions()
     {
         $user1 = User::create();
         $user2 = User::create();
@@ -341,7 +362,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($users->contains($user3));
     }
 
-        public function test_withAnyPermission_returns_empty_if_no_users_have_permissions()
+    /** @test */
+    public function withAnyPermission_returns_empty_if_no_users_have_permissions()
     {
         $user = User::create();
         // user has no permissions
@@ -351,7 +373,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($users->contains($user));
     }
 
-        public function test_withAllPermissions_finds_users_with_all_permissions()
+    /** @test */
+    public function withAllPermissions_finds_users_with_all_permissions()
     {
         $user1 = User::create();
         $user2 = User::create();
@@ -372,7 +395,8 @@ class PermissionsTest extends TestCase
         $this->assertFalse($users->contains($user3));
     }
 
-        public function test_withAllPermissions_works_with_mixed_direct_and_role_permissions()
+    /** @test */
+    public function withAllPermissions_works_with_mixed_direct_and_role_permissions()
     {
         $user = User::create();
 

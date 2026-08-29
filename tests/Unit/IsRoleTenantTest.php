@@ -11,7 +11,8 @@ class IsRoleTenantTest extends TestCase
 {
     use RefreshDatabase;
 
-        public function test_it_returns_only_roles_belonging_to_the_given_account_tenant()
+    /** @test */
+    public function it_returns_only_roles_belonging_to_the_given_account_tenant()
     {
         $account = Account::create();
 
@@ -43,7 +44,8 @@ class IsRoleTenantTest extends TestCase
         $this->assertFalse($roles->contains('handle', 'role-3'));
     }
 
-        public function test_it_returns_an_empty_collection_when_account_has_no_roles()
+    /** @test */
+    public function it_returns_an_empty_collection_when_account_has_no_roles()
     {
         $account = Account::create();
 

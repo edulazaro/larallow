@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\App;
 
 class RoleTranslationsTest extends TestCase
 {
-        public function test_it_returns_translation_for_current_locale()
+    /** @test */
+    public function it_returns_translation_for_current_locale()
     {
         $role = new Role();
         $role->translations = [
@@ -24,7 +25,8 @@ class RoleTranslationsTest extends TestCase
         $this->assertEquals('Administrador', $role->getTranslation('name'));
     }
 
-        public function test_it_falls_back_to_default_locale_translation_if_current_locale_not_found()
+    /** @test */
+    public function it_falls_back_to_default_locale_translation_if_current_locale_not_found()
     {
         $role = new Role();
         $role->translations = [
@@ -40,7 +42,8 @@ class RoleTranslationsTest extends TestCase
         $this->assertEquals('Administrator', $role->getTranslation('name'));
     }
 
-        public function test_it_returns_database_value_if_no_translation_found()
+    /** @test */
+    public function it_returns_database_value_if_no_translation_found()
     {
         $role = new Role();
         $role->name = 'Admin';
@@ -54,7 +57,8 @@ class RoleTranslationsTest extends TestCase
         $this->assertEquals('Admin', $role->getTranslation('name'));
     }
 
-        public function test_it_returns_default_value_if_no_translation_or_attribute()
+    /** @test */
+    public function it_returns_default_value_if_no_translation_or_attribute()
     {
         $role = new Role();
         $role->translations = [];
@@ -66,7 +70,8 @@ class RoleTranslationsTest extends TestCase
         $this->assertEquals('default', $role->getTranslation('name', null, 'default'));
     }
 
-        public function test_it_can_set_and_get_translation_for_a_given_locale()
+    /** @test */
+    public function it_can_set_and_get_translation_for_a_given_locale()
     {
         $role = new Role();
         $role->translations = [];
