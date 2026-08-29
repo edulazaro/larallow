@@ -102,6 +102,65 @@ $user->hasRole('editor');
 
 ---
 
+## Tenants and scopes
+
+These two get mixed up more than anything else here, and it is worth two minutes because
+the answer also explains why only roles take a tenant.
+
+**Permissions are application level.** `edit-post` is part of your application's
+vocabulary, declared in code and the same for everyone: there is no `permissions` table
+and nobody owns one. So a permission has no tenant. It has a **scope**, which is the
+element it applies to.
+
+**Roles are rows a tenant creates.** A role is a name and a set of permissions, stored in
+the database, and one customer's "Editor" can be a different row from another customer's
+"Editor" with different permissions inside. That is something to own, so it takes a
+**tenant**.
+
+So the asymmetry is not an omission. A permission has nothing to own; a role does.
+
+### Which one does my case need
+
+**Same role everywhere, granted per place → scope.** A user belongs to several companies
+and holds a different role in each:
+
+```php
+$user->assignRole($manager, $acme);      // manager at Acme
+$user->assignRole($viewer, $globex);     // viewer at Globex
+
+$user->hasRole('manager', $acme);        // true
+$user->hasRole('manager', $globex);      // false
+```
+
+There is one `manager` row and it means the same thing everywhere. Only the grants differ.
+Permissions work the same way, and this is how a permission gets confined to a customer:
+
+```php
+$user->allow('manage_clients', $acme);   // only for Acme
+$user->allow('manage_clients', $office); // only for that office
+```
+
+**Each customer writing its own roles → tenant.** Acme wants roles with names and
+permissions that mean nothing to Globex:
+
+```php
+$acmeManager = Role::create([
+    'handle' => 'manager',
+    'tenant_type' => 'company',
+    'tenant_id' => $acme->id,
+]);
+```
+
+Both companies can now have a `manager` role and they are separate definitions: the unique
+index is on the handle plus the tenant, so handles are free to repeat.
+
+One question settles it: **delete the tenant and a role definition disappears; delete the
+scope and only that one grant disappears.**
+
+You will often need neither. Start without them and add the one the question points at.
+
+---
+
 ## Setup
 
 ### Actor Traits
