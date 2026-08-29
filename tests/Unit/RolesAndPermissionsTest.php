@@ -6,6 +6,7 @@ use EduLazaro\Larallow\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use EduLazaro\Larallow\Permissions;
 use EduLazaro\Larallow\Permission;
+use PHPUnit\Framework\Attributes\Test;
 
 use EduLazaro\Larallow\Tests\Support\Models\User;
 use EduLazaro\Larallow\Tests\Support\Models\Client;
@@ -70,7 +71,7 @@ class RolesAndPermissionsTest extends TestCase
         return $user;
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_true_for_user_with_all_direct_permissions()
     {
         $user = $this->createUserWithPermissions([
@@ -89,7 +90,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_true_for_user_with_all_permissions_via_roles()
     {
         $user = $this->createUserWithPermissions([], [
@@ -108,7 +109,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_true_for_user_with_permissions_combined_direct_and_roles()
     {
         $user = $this->createUserWithPermissions(
@@ -127,7 +128,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-   /** @test */
+   #[Test]
     public function check_returns_true_for_user_missing_any_permission()
     {
         $user = $this->createUserWithPermissions([UserPermissions::EditPost->value]);
@@ -143,7 +144,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_false_for_user_missing_all_permission()
     {
         $user = $this->createUserWithPermissions([UserPermissions::EditPost->value]);
@@ -159,7 +160,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertFalse($result);
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_true_for_user_with_scope_scope()
     {
         $scope = new class {
@@ -182,7 +183,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_false_for_user_with_wrong_scope_scope()
     {
         $correctRoleable = new class {
@@ -210,7 +211,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertFalse($result);
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_true_for_client_with_direct_permissions()
     {
         $client = new Client();
@@ -226,7 +227,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function check_returns_false_for_client_missing_permissions()
     {
         $client = new Client();

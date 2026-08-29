@@ -7,6 +7,7 @@ use EduLazaro\Larallow\Permissions;
 use EduLazaro\Larallow\Permission;
 use EduLazaro\Larallow\Tests\Support\Models\User;
 use EduLazaro\Larallow\Tests\Support\Enums\UserPermissions;
+use PHPUnit\Framework\Attributes\Test;
 
 class ImpliedPermissionsTest extends TestCase
 {
@@ -24,7 +25,7 @@ class ImpliedPermissionsTest extends TestCase
         ])->for(User::class);
     }
 
-    /** @test */
+    #[Test]
     public function user_has_permission_if_implied_by_assigned_permission()
     {
         $user = User::create();
@@ -40,7 +41,7 @@ class ImpliedPermissionsTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function user_does_not_have_implied_permission_if_not_configured()
     {
         $user = User::create();
@@ -55,7 +56,7 @@ class ImpliedPermissionsTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function user_must_have_explicit_or_implied_permission()
     {
         $user = User::create();
@@ -77,7 +78,7 @@ class ImpliedPermissionsTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function user_must_have_all_explicit_or_implied_permissions_for_check_all()
     {
         $user = User::create();

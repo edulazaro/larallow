@@ -6,12 +6,13 @@ use EduLazaro\Larallow\Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use EduLazaro\Larallow\Models\Role;
 use EduLazaro\Larallow\Tests\Support\Models\Account;
+use PHPUnit\Framework\Attributes\Test;
 
 class IsRoleTenantTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function it_returns_only_roles_belonging_to_the_given_account_tenant()
     {
         $account = Account::create();
@@ -44,7 +45,7 @@ class IsRoleTenantTest extends TestCase
         $this->assertFalse($roles->contains('handle', 'role-3'));
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_an_empty_collection_when_account_has_no_roles()
     {
         $account = Account::create();
