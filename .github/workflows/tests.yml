@@ -155,12 +155,6 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, sqlite3, pdo_sqlite
           coverage: none
-          # Las deprecaciones de una PHP sin publicar son de Laravel, no nuestras, y
-          # ademas Laravel convierte algunas en excepcion (HandleExceptions), asi que
-          # un aviso del framework tumbaba un test nuestro. Este trabajo esta para
-          # avisar de incompatibilidades reales, no para repetir el trabajo pendiente
-          # del framework.
-          ini-values: 'error_reporting=E_ALL & ~E_DEPRECATED'
 
       - name: Install dependencies
         run: |
