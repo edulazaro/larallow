@@ -100,7 +100,12 @@ class Roles
 
             $scopeType = $role->scope_type;
 
-            if ($actorType !== null && !empty($actorType) && !$actorClass !== 'actorType') {
+            // Estaba escrito `!$actorClass !== 'actorType'`, con dos fallos: 'actorType'
+            // era una cadena literal (faltaba el $) y el ! se aplica antes que el !==,
+            // asi que comparaba un booleano contra un texto y salia true siempre. La
+            // condicion entera se reducia a "si el rol tiene actor_type, lanza", asi que
+            // ningun rol con actor_type se podia asignar por aqui, ni el que encajaba.
+            if ($actorType !== null && !empty($actorType) && $actorClass !== $actorType) {
                 throw new InvalidArgumentException(
                     "Actor type '{$actorClass}' is not allowed by the actor_type of role '{$role->name}'."
                 );
