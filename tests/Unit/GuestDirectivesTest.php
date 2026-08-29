@@ -5,7 +5,6 @@ namespace EduLazaro\Larallow\Tests\Unit;
 use EduLazaro\Larallow\Permissions;
 use EduLazaro\Larallow\Roles;
 use EduLazaro\Larallow\Tests\TestCase;
-use Mockery;
 
 /**
  * Las directivas Blade con un visitante sin autenticar.
@@ -16,18 +15,6 @@ use Mockery;
  */
 class GuestDirectivesTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // Un visitante sin autenticar, sin arrancar el gestor de sesion de Laravel.
-        // auth()->user() resuelve el guard 'web', que arranca la sesion, y en PHP 8.6
-        // instanciar ArraySessionHandler emite una deprecacion que Laravel convierte en
-        // excepcion: un aviso del framework tumbaba un test que no va de eso. Lo que
-        // aqui se prueba es que un actor nulo devuelva false, no el stack de auth.
-        $this->app->instance('auth', Mockery::mock(['user' => null]));
-    }
-
     public function test_permissions_returns_false_for_a_guest_instead_of_throwing(): void
     {
         $this->assertFalse(Permissions::query()->permissions('edit-post')->on(null)->check());
