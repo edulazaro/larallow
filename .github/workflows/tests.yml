@@ -32,7 +32,7 @@ jobs:
         id: resolve
         run: |
           php -r '
-            $minLaravel = 10;
+            $minLaravel = 11;
 
             // The PHP floor comes from the package itself, so bumping
             // composer.json is enough and this workflow never has to change.
