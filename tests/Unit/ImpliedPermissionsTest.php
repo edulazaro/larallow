@@ -24,8 +24,7 @@ class ImpliedPermissionsTest extends TestCase
         ])->for(User::class);
     }
 
-    /** @test */
-    public function user_has_permission_if_implied_by_assigned_permission()
+        public function test_user_has_permission_if_implied_by_assigned_permission()
     {
         $user = User::create();
 
@@ -40,8 +39,7 @@ class ImpliedPermissionsTest extends TestCase
         );
     }
 
-    /** @test */
-    public function user_does_not_have_implied_permission_if_not_configured()
+        public function test_user_does_not_have_implied_permission_if_not_configured()
     {
         $user = User::create();
 
@@ -55,8 +53,7 @@ class ImpliedPermissionsTest extends TestCase
         );
     }
 
-    /** @test */
-    public function user_must_have_explicit_or_implied_permission()
+        public function test_user_must_have_explicit_or_implied_permission()
     {
         $user = User::create();
 
@@ -77,8 +74,7 @@ class ImpliedPermissionsTest extends TestCase
         );
     }
 
-    /** @test */
-    public function user_must_have_all_explicit_or_implied_permissions_for_check_all()
+        public function test_user_must_have_all_explicit_or_implied_permissions_for_check_all()
     {
         $user = User::create();
 

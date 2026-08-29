@@ -70,8 +70,7 @@ class RolesAndPermissionsTest extends TestCase
         return $user;
     }
 
-    /** @test */
-    public function check_returns_true_for_user_with_all_direct_permissions()
+        public function test_check_returns_true_for_user_with_all_direct_permissions()
     {
         $user = $this->createUserWithPermissions([
             UserPermissions::EditPost->value,
@@ -89,8 +88,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
-    public function check_returns_true_for_user_with_all_permissions_via_roles()
+        public function test_check_returns_true_for_user_with_all_permissions_via_roles()
     {
         $user = $this->createUserWithPermissions([], [
             UserPermissions::EditPost->value,
@@ -108,8 +106,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
-    public function check_returns_true_for_user_with_permissions_combined_direct_and_roles()
+        public function test_check_returns_true_for_user_with_permissions_combined_direct_and_roles()
     {
         $user = $this->createUserWithPermissions(
             [UserPermissions::EditPost->value],
@@ -127,8 +124,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-   /** @test */
-    public function check_returns_true_for_user_missing_any_permission()
+       public function test_check_returns_true_for_user_missing_any_permission()
     {
         $user = $this->createUserWithPermissions([UserPermissions::EditPost->value]);
 
@@ -143,8 +139,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
-    public function check_returns_false_for_user_missing_all_permission()
+        public function test_check_returns_false_for_user_missing_all_permission()
     {
         $user = $this->createUserWithPermissions([UserPermissions::EditPost->value]);
 
@@ -159,8 +154,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertFalse($result);
     }
 
-    /** @test */
-    public function check_returns_true_for_user_with_scope_scope()
+        public function test_check_returns_true_for_user_with_scope_scope()
     {
         $scope = new class {
             public function getMorphClass() { return 'app-scope'; }
@@ -182,8 +176,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
-    public function check_returns_false_for_user_with_wrong_scope_scope()
+        public function test_check_returns_false_for_user_with_wrong_scope_scope()
     {
         $correctRoleable = new class {
             public function getMorphClass() { return 'app-scope'; }
@@ -210,8 +203,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertFalse($result);
     }
 
-    /** @test */
-    public function check_returns_true_for_client_with_direct_permissions()
+        public function test_check_returns_true_for_client_with_direct_permissions()
     {
         $client = new Client();
         $client->save();
@@ -226,8 +218,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
-    public function check_returns_false_for_client_missing_permissions()
+        public function test_check_returns_false_for_client_missing_permissions()
     {
         $client = new Client();
         $client->save();

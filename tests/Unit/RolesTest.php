@@ -38,8 +38,7 @@ class RolesTest extends TestCase
         return Role::create(['handle' => $handle]);
     }
 
-    /** @test */
-    public function user_can_assign_and_remove_roles()
+        public function test_user_can_assign_and_remove_roles()
     {
         $user = new User();
         $user->save();
@@ -53,8 +52,7 @@ class RolesTest extends TestCase
         $this->assertFalse($user->hasRole('admin'));
     }
 
-    /** @test */
-    public function client_can_assign_and_remove_roles()
+        public function test_client_can_assign_and_remove_roles()
     {
         $client = new Client();
         $client->save();
@@ -68,8 +66,7 @@ class RolesTest extends TestCase
         $this->assertFalse($client->hasRole('customer'));
     }
 
-    /** @test */
-    public function user_has_role_permission_checks_permission_on_roles()
+        public function test_user_has_role_permission_checks_permission_on_roles()
     {
         $user = new User();
         $user->save();
@@ -83,8 +80,7 @@ class RolesTest extends TestCase
         $this->assertFalse($user->hasRolePermission('delete-post'));
     }
 
-    /** @test */
-    public function client_has_role_permission_checks_permission_on_roles()
+        public function test_client_has_role_permission_checks_permission_on_roles()
     {
         $client = new Client();
         $client->save();
@@ -98,8 +94,7 @@ class RolesTest extends TestCase
         $this->assertFalse($client->hasRolePermission('cancel-order'));
     }
 
-    /** @test */
-    public function user_has_role_permissions_accepts_array()
+        public function test_user_has_role_permissions_accepts_array()
     {
         $user = new User();
         $user->save();
@@ -114,8 +109,7 @@ class RolesTest extends TestCase
         $this->assertFalse($user->hasRolePermissions(['edit-post', 'non-existent-permission']));
     }
 
-    /** @test */
-    public function hasAnyRolePermission_returns_true_if_any_permission_exists()
+        public function test_hasAnyRolePermission_returns_true_if_any_permission_exists()
     {
         $user = new User();
         $user->save();
@@ -132,8 +126,7 @@ class RolesTest extends TestCase
         $this->assertFalse($user->hasAnyRolePermission('non-existent-permission'));
     }
 
-    /** @test */
-    public function permissions_check_returns_true_if_user_has_any_of_the_permissions()
+        public function test_permissions_check_returns_true_if_user_has_any_of_the_permissions()
     {
         $user = new User();
         $user->save();
@@ -149,8 +142,7 @@ class RolesTest extends TestCase
         $this->assertTrue($result); // Has 'edit-post' via role
     }
 
-    /** @test */
-    public function permissions_check_all_returns_false_if_user_lacks_any_permission()
+        public function test_permissions_check_all_returns_false_if_user_lacks_any_permission()
     {
         $user = new User();
         $user->save();
@@ -166,8 +158,7 @@ class RolesTest extends TestCase
         $this->assertFalse($result); // Missing 'delete-post'
     }
 
-    /** @test */
-    public function syncRoles_adds_new_roles()
+        public function test_syncRoles_adds_new_roles()
     {
         $user = new User();
         $user->save();
@@ -181,8 +172,7 @@ class RolesTest extends TestCase
         $this->assertTrue($user->hasRole('editor'));
     }
 
-    /** @test */
-    public function syncRoles_removes_roles_not_in_list()
+        public function test_syncRoles_removes_roles_not_in_list()
     {
         $user = new User();
         $user->save();
@@ -205,8 +195,7 @@ class RolesTest extends TestCase
         $this->assertFalse($user->hasRole('viewer'));
     }
 
-    /** @test */
-    public function syncRoles_keeps_existing_roles_in_list()
+        public function test_syncRoles_keeps_existing_roles_in_list()
     {
         $user = new User();
         $user->save();
@@ -226,8 +215,7 @@ class RolesTest extends TestCase
         $this->assertTrue($user->hasRole('editor'));
     }
 
-    /** @test */
-    public function user_can_have_scoped_role()
+        public function test_user_can_have_scoped_role()
     {
         $user = User::create();
         $account = Account::create();
@@ -251,8 +239,7 @@ class RolesTest extends TestCase
         $this->assertFalse($user->hasRole('editor')); // without scope
     }
 
-    /** @test */
-    public function syncRoles_with_scope_only_affects_that_scope()
+        public function test_syncRoles_with_scope_only_affects_that_scope()
     {
         $user = User::create();
         $account = Account::create();
@@ -282,8 +269,7 @@ class RolesTest extends TestCase
         $this->assertTrue($user->hasRole('manager', $account));
     }
 
-    /** @test */
-    public function syncRoles_accepts_role_ids_and_role_objects()
+        public function test_syncRoles_accepts_role_ids_and_role_objects()
     {
         $user = new User();
         $user->save();
@@ -298,8 +284,7 @@ class RolesTest extends TestCase
         $this->assertTrue($user->hasRole('editor'));
     }
 
-    /** @test */
-    public function role_can_add_single_permission()
+        public function test_role_can_add_single_permission()
     {
         $role = $this->createRole('editor');
 
@@ -311,8 +296,7 @@ class RolesTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function role_can_add_multiple_permissions()
+        public function test_role_can_add_multiple_permissions()
     {
         $role = $this->createRole('editor');
 
@@ -332,8 +316,7 @@ class RolesTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function role_addPermission_does_not_duplicate()
+        public function test_role_addPermission_does_not_duplicate()
     {
         $role = $this->createRole('editor');
 
@@ -343,8 +326,7 @@ class RolesTest extends TestCase
         $this->assertEquals(1, $role->permissions()->where('permission', 'edit-post')->count());
     }
 
-    /** @test */
-    public function role_can_remove_single_permission()
+        public function test_role_can_remove_single_permission()
     {
         $role = $this->createRole('editor');
         $role->addPermission(['edit-post', 'delete-post']);
@@ -361,8 +343,7 @@ class RolesTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function role_can_remove_multiple_permissions()
+        public function test_role_can_remove_multiple_permissions()
     {
         $role = $this->createRole('editor');
         $role->addPermission(['edit-post', 'delete-post', 'view-post']);
