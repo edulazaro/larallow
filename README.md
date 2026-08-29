@@ -1,3 +1,4 @@
+![Larallow](art/banner.png)
 
 # Larallow for Laravel: A package to handle roles and permissions
 
